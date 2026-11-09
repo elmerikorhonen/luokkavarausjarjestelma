@@ -1,7 +1,7 @@
 
 <?php
  
-$apiOsoite = $apiOsoite = "http://localhost/trel.php";
+$apiOsoite = $apiOsoite = "http://localhost:8080/trel.php";
 $viesti = "";
  
  

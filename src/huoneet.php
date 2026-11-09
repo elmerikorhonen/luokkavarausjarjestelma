@@ -276,9 +276,9 @@ a:active {
     <div class="laatikko">
  
         <h2>Varaa huone</h2>
-             <form action="trel.php" method="get" target="_blank">
-            <form action="varaukset.php" method="get" target="_blank">
-        <form action="kayttajat.php" method="get" target="_blank">   
+             <form action="trel.php" method="get" target="td_blank">
+            <form action="varaukset.php" method="get" target="td_blank">
+        <form action="kayttajat.php" method="get" target="td_blank">   
             <label for="nimi">
                 Nimi
             </label>
