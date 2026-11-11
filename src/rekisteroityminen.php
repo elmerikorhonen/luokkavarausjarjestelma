@@ -1,123 +1,63 @@
 <?php
- 
-$apiOsoite = "http://localhost/trelo.html";
 $viesti = "";
- 
- 
-// Kun lomake lähetetään
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
- 
-    $nimi = trim($_POST["nimi"] ?? "");
-    $osallistujamaara = $_POST["osallistujamaara"] ?? "";
-    $paikka = $_POST["paikka"] ?? "";
-    $paivamaara = trim($_POST["paivamaara"] ?? "");
- 
-    if ($nimi === "" || $osallistujamaara === "" && "0" || $paikka === "" || $paivamaara === "") {
- 
-        $viesti = "Täytä tapahtuman tiedot";
- 
-    } else {
- 
-        // Aloitetaan cURL-pyyntö
-        $curl = curl_init();
- 
-        // Asetetaan API:n osoite
-        curl_setopt(
-            $curl,
-            CURLOPT_URL,
-            $apiOsoite
-        );
- 
-        // Pyyntö on POST-pyyntö
-        curl_setopt(
-            $curl,
-            CURLOPT_POST,
-            true
-        );
- 
-        // Lähetettävät tiedot
-        curl_setopt(
-            $curl,
-            CURLOPT_POSTFIELDS,
-            [
-                "nimi" => $nimi,
-                "osallistujamaara" => $osallistujamaara,
-                "paikka" => $paikka,
-                "paivamaara" => $paivamaara
+$viestiluokka = "viesti";
+$etunimi = "";
+$sukunimi = "";
+$sahkoposti = "";
 
-            ]
-        );
- 
-        // API:n vastaus tallennetaan muuttujaan
-        curl_setopt(
-            $curl,
-            CURLOPT_RETURNTRANSFER,
-            true
-        );
- 
-        // Suoritetaan pyyntö
-        $vastaus = curl_exec($curl);
- 
-        // Tarkistetaan, tapahtuiko cURL-virhe
-        if ($vastaus === false) {
- 
-            $viesti = "cURL-virhe: " . curl_error($curl);
- 
-        } else {
- 
-            $vastausTaulukkona = json_decode(
-                $vastaus,
-                true
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $etunimi = trim($_POST["etunimi"] ?? "");
+    $sukunimi = trim($_POST["sukunimi"] ?? "");
+    $sahkoposti = trim($_POST["sahkoposti"] ?? "");
+    $salasana = $_POST["salasana"] ?? "";
+    $salasanaUudelleen = $_POST["salasana_uudelleen"] ?? "";
+
+    if ($etunimi === "" || $sukunimi === "" || $sahkoposti === "" || $salasana === "" || $salasanaUudelleen === "") {
+        $viesti = "Täytä kaikki kentät.";
+        $viestiluokka = "virhe";
+    } elseif (mb_strlen($etunimi) > 100 || mb_strlen($sukunimi) > 100 || mb_strlen($sahkoposti) > 100) {
+        $viesti = "Nimi tai sähköpostiosoite on liian pitkä.";
+        $viestiluokka = "virhe";
+    } elseif (!filter_var($sahkoposti, FILTER_VALIDATE_EMAIL)) {
+        $viesti = "Anna kelvollinen sähköpostiosoite.";
+        $viestiluokka = "virhe";
+    } elseif (strlen($salasana) < 8) {
+        $viesti = "Salasanan pitää olla vähintään 8 merkkiä.";
+        $viestiluokka = "virhe";
+    } elseif ($salasana !== $salasanaUudelleen) {
+        $viesti = "Salasanat eivät täsmää.";
+        $viestiluokka = "virhe";
+    } else {
+        try {
+            require_once __DIR__ . "/back/db.php";
+
+            $kysely = $pdo->prepare(
+                "INSERT INTO Kayttajat (Etunimi, Sukunimi, Sahkoposti, Salasana_hash, Rooli)
+                 VALUES (:etunimi, :sukunimi, :sahkoposti, :salasana_hash, :rooli)"
             );
- 
-            $viesti = $vastausTaulukkona["viesti"]
-                ?? "API ei palauttanut viestiä.";
+            $kysely->execute([
+                "etunimi" => $etunimi,
+                "sukunimi" => $sukunimi,
+                "sahkoposti" => $sahkoposti,
+                "salasana_hash" => password_hash($salasana, PASSWORD_DEFAULT),
+                "rooli" => "kayttaja",
+            ]);
+
+            $viesti = "Rekisteröityminen onnistui. Voit nyt kirjautua sisään.";
+            $etunimi = "";
+            $sukunimi = "";
+            $sahkoposti = "";
+        } catch (PDOException $e) {
+            if ($e->getCode() === "23000") {
+                $viesti = "Tällä sähköpostiosoitteella on jo rekisteröity käyttäjä.";
+            } else {
+                error_log($e->getMessage());
+                $viesti = "Rekisteröityminen ei onnistunut tietokantavirheen vuoksi.";
+            }
+            $viestiluokka = "virhe";
         }
- 
-        // Suljetaan cURL-yhteys
-        curl_close($curl);
     }
 }
- 
- 
-// Haetaan kaikki tuotteet API:sta
-$curl = curl_init();
- 
-curl_setopt(
-    $curl,
-    CURLOPT_URL,
-    $apiOsoite
-);
- 
-curl_setopt(
-    $curl,
-    CURLOPT_RETURNTRANSFER,
-    true
-);
- 
-$vastaus = curl_exec($curl);
- 
-if ($vastaus === false) {
- 
-    $tuotteet = [];
-    $hakuvirhe = curl_error($curl);
- 
-} else {
- 
-    $tuotteet = json_decode(
-        $vastaus,
-        true
-    );
- 
-    $hakuvirhe = "";
- 
-    if (!is_array($tuotteet)) {
-        $tuotteet = [];
-    }
-}
- 
-curl_close($curl);
- 
 ?>
 <!DOCTYPE html>
 <html lang="fi">
@@ -233,17 +173,8 @@ curl_close($curl);
  
     <?php if ($viesti !== ""): ?>
  
-        <div class="viesti">
+        <div class="<?= $viestiluokka ?>">
             <?= htmlspecialchars($viesti) ?>
-        </div>
- 
-    <?php endif; ?>
- 
-    <?php if ($hakuvirhe !== ""): ?>
- 
-        <div class="virhe">
-            Tuotteiden hakeminen epäonnistui:
-            <?= htmlspecialchars($hakuvirhe) ?>
         </div>
  
     <?php endif; ?>
@@ -251,58 +182,70 @@ curl_close($curl);
     <div class="laatikko">
  
         <h2>Rekisteröidy</h2>
-        </h2>
  
-        <form method="post" action="trel.php">
+        <form method="post" action="rekisteroityminen.php">
  
-            <label for="nimi">
-                Nimi
+            <label for="etunimi">
+                Etunimi
             </label>
  
             <input
                 type="text"
-                id="nimi"
-                name="nimi"
+                id="etunimi"
+                name="etunimi"
+                maxlength="100"
+                value="<?= htmlspecialchars($etunimi, ENT_QUOTES, "UTF-8") ?>"
                 required
             >
 
-            <label for="osallistujamaara">
+            <label for="sukunimi">
+                Sukunimi
+            </label>
+
+            <input
+                type="text"
+                id="sukunimi"
+                name="sukunimi"
+                maxlength="100"
+                value="<?= htmlspecialchars($sukunimi, ENT_QUOTES, "UTF-8") ?>"
+                required
+            >
+
+            <label for="sahkoposti">
                 Sähköposti
             </label>
 
             <input
-                type="text"
-                id="osallistujamaara"
-                name="osallistujamaara"
-                
-                
+                type="email"
+                id="sahkoposti"
+                name="sahkoposti"
+                maxlength="100"
+                value="<?= htmlspecialchars($sahkoposti, ENT_QUOTES, "UTF-8") ?>"
                 required
             >
             
-            <label for="osallistujamaara">
+            <label for="salasana">
                 Salasana
             </label>
 
             <input
-                type="text"
-                id="osallistujamaara"
-                name="osallistujamaara"
-                
-                
+                type="password"
+                id="salasana"
+                name="salasana"
+                minlength="8"
                 required
             >
             
             
-            <label for="osallistujamaara">
+            <label for="salasana_uudelleen">
                 Varmista salasana
             </label>
 
             <input
-                type="text"
-                id="osallistujamaara"
-                name="osallistujamaara"
-                
-                
+                type="password"
+                id="salasana_uudelleen"
+                name="salasana_uudelleen"
+                minlength="8"
                 required
             >
 
@@ -317,7 +260,7 @@ curl_close($curl);
         </form>
 
 
-        <form method="post" action="trelo.php">
+        <form method="post" action="kirjautuminen.php">
  
             <button type="submit">
                 Takaisin

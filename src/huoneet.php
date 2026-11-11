@@ -1,123 +1,111 @@
 <?php
- 
-$apiOsoite = "http://localhost/trel.php";
-$viesti = "";
- 
- 
-// Kun lomake lähetetään
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
- 
-    $nimi = trim($_POST["nimi"] ?? "");
-    $maa = $_POST["maa"] ?? "";
-    $nimi2 = $_POST["nimi2"] ?? "";
-    $paivamaara = trim($_POST["paivamaara"] ?? "");
- 
-    if ($nimi === "" || $maa === "" || $nimi2 === "" || $paivamaara === "") {
- 
-        $viesti = "Täytä tiedot";
- 
-    } else {
- 
-        // Aloitetaan cURL-pyyntö
-        $curl = curl_init();
- 
-        // Asetetaan API:n osoite
-        curl_setopt(
-            $curl,
-            CURLOPT_URL,
-            $apiOsoite
-        );
- 
-        // Pyyntö on POST-pyyntö
-        curl_setopt(
-            $curl,
-            CURLOPT_POST,
-            true
-        );
- 
-        // Lähetettävät tiedot
-        curl_setopt(
-            $curl,
-            CURLOPT_POSTFIELDS,
-            [
-                "nimi" => $nimi,
-                "maa" => $maa,
-                "nimi2" => $nimi2,
-                "paivamaara" => $paivamaara
+session_start();
 
-            ]
-        );
- 
-        // API:n vastaus tallennetaan muuttujaan
-        curl_setopt(
-            $curl,
-            CURLOPT_RETURNTRANSFER,
-            true
-        );
- 
-        // Suoritetaan pyyntö
-        $vastaus = curl_exec($curl);
- 
-        // Tarkistetaan, tapahtuiko cURL-virhe
-        if ($vastaus === false) {
- 
-            $viesti = "cURL-virhe: " . curl_error($curl);
- 
-        } else {
- 
-            $vastausTaulukkona = json_decode(
-                $vastaus,
-                true
+if (!isset($_SESSION["kayttaja_id"])) {
+    header("Location: kirjautuminen.php");
+    exit;
+}
+
+require_once __DIR__ . "/back/db.php";
+
+$viesti = "";
+$viestiluokka = "viesti";
+$hakuvirhe = "";
+$luokka = "";
+$paivamaara = "";
+$alkamisaika = "";
+$loppumisaika = "";
+$aihe = "";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $luokka = trim($_POST["luokka"] ?? "");
+    $paivamaara = trim($_POST["paivamaara"] ?? "");
+    $alkamisaika = trim($_POST["alkamisaika"] ?? "");
+    $loppumisaika = trim($_POST["loppumisaika"] ?? "");
+    $aihe = trim($_POST["aihe"] ?? "");
+
+    $paivamaaraTarkistettu = DateTime::createFromFormat("!Y-m-d", $paivamaara);
+    $paivamaaraKelvollinen = $paivamaaraTarkistettu
+        && $paivamaaraTarkistettu->format("Y-m-d") === $paivamaara;
+
+    if ($luokka === "" || $paivamaara === "" || $alkamisaika === "" || $loppumisaika === "" || $aihe === "") {
+        $viesti = "Täytä kaikki varauksen kentät.";
+        $viestiluokka = "virhe";
+    } elseif (mb_strlen($luokka) > 50 || mb_strlen($aihe) > 100) {
+        $viesti = "Luokan nimi tai varauksen aihe on liian pitkä.";
+        $viestiluokka = "virhe";
+    } elseif (!$paivamaaraKelvollinen) {
+        $viesti = "Valitse kelvollinen päivämäärä.";
+        $viestiluokka = "virhe";
+    } elseif (!preg_match('/^\d{2}:\d{2}$/', $alkamisaika) || !preg_match('/^\d{2}:\d{2}$/', $loppumisaika)) {
+        $viesti = "Valitse kelvollinen alkamis- ja päättymisaika.";
+        $viestiluokka = "virhe";
+    } elseif ($alkamisaika >= $loppumisaika) {
+        $viesti = "Päättymisajan pitää olla alkamisajan jälkeen.";
+        $viestiluokka = "virhe";
+    } else {
+        try {
+            $varausTarkistus = $pdo->prepare(
+                "SELECT COUNT(*)
+                 FROM Varaukset
+                 WHERE Luokka = :luokka
+                   AND Paivamaara = :paivamaara
+                   AND Alkamisaika < :loppumisaika
+                   AND Loppumisaika > :alkamisaika"
             );
- 
-            $viesti = $vastausTaulukkona["viesti"]
-                ?? "API ei palauttanut viestiä.";
+            $varausTarkistus->execute([
+                "luokka" => $luokka,
+                "paivamaara" => $paivamaara,
+                "alkamisaika" => $alkamisaika,
+                "loppumisaika" => $loppumisaika,
+            ]);
+
+            if ((int) $varausTarkistus->fetchColumn() > 0) {
+                $viesti = "Luokka on jo varattu valittuna aikana.";
+                $viestiluokka = "virhe";
+            } else {
+                $lisaaVaraus = $pdo->prepare(
+                    "INSERT INTO Varaukset (KayttajaID, Luokka, Paivamaara, Alkamisaika, Loppumisaika, Aihe)
+                     VALUES (:kayttaja_id, :luokka, :paivamaara, :alkamisaika, :loppumisaika, :aihe)"
+                );
+                $lisaaVaraus->execute([
+                    "kayttaja_id" => $_SESSION["kayttaja_id"],
+                    "luokka" => $luokka,
+                    "paivamaara" => $paivamaara,
+                    "alkamisaika" => $alkamisaika,
+                    "loppumisaika" => $loppumisaika,
+                    "aihe" => $aihe,
+                ]);
+
+                $viesti = "Varaus tallennettiin.";
+                $luokka = "";
+                $paivamaara = "";
+                $alkamisaika = "";
+                $loppumisaika = "";
+                $aihe = "";
+            }
+        } catch (PDOException $e) {
+            error_log($e->getMessage());
+            $viesti = "Varausta ei voitu tallentaa tietokantaan.";
+            $viestiluokka = "virhe";
         }
- 
-        // Suljetaan cURL-yhteys
-        curl_close($curl);
     }
 }
- 
- 
-// Haetaan kaikki tuotteet API:sta
-$curl = curl_init();
- 
-curl_setopt(
-    $curl,
-    CURLOPT_URL,
-    $apiOsoite
-);
- 
-curl_setopt(
-    $curl,
-    CURLOPT_RETURNTRANSFER,
-    true
-);
- 
-$vastaus = curl_exec($curl);
- 
-if ($vastaus === false) {
- 
-    $tuotteet = [];
-    $hakuvirhe = curl_error($curl);
- 
-} else {
- 
-    $tuotteet = json_decode(
-        $vastaus,
-        true
+
+try {
+    $varausHaku = $pdo->prepare(
+        "SELECT Luokka, Paivamaara, Alkamisaika, Loppumisaika, Aihe
+         FROM Varaukset
+         WHERE KayttajaID = :kayttaja_id
+         ORDER BY Paivamaara DESC, Alkamisaika DESC"
     );
- 
-    $hakuvirhe = "";
- 
-    if (!is_array($tuotteet)) {
-        $tuotteet = [];
-    }
+    $varausHaku->execute(["kayttaja_id" => $_SESSION["kayttaja_id"]]);
+    $varaukset = $varausHaku->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log($e->getMessage());
+    $varaukset = [];
+    $hakuvirhe = "Varausten hakeminen tietokannasta epäonnistui.";
 }
- 
-curl_close($curl);
- 
 ?>
 <!DOCTYPE html>
 <html lang="fi">
@@ -276,78 +264,59 @@ a:active {
     <div class="laatikko">
  
         <h2>Varaa huone</h2>
-             <form action="trel.php" method="get" target="td_blank">
-            <form action="varaukset.php" method="get" target="td_blank">
-        <form action="kayttajat.php" method="get" target="td_blank">   
-            <label for="nimi">
-                Nimi
-            </label>
- 
+        <form method="post" action="huoneet.php">
+            <label for="luokka">Luokka tai huone</label>
             <input
                 type="text"
-                id="nimi"
-                name="nimi"
+                id="luokka"
+                name="luokka"
+                maxlength="50"
+                value="<?= htmlspecialchars($luokka, ENT_QUOTES, "UTF-8") ?>"
                 required
             >
 
-            <label for="maa">
-                Maa
-            </label>
- 
+            <label for="aihe">Varauksen aihe</label>
             <input
                 type="text"
-                id="maa"
-                name="maa"
+                id="aihe"
+                name="aihe"
+                maxlength="100"
+                value="<?= htmlspecialchars($aihe, ENT_QUOTES, "UTF-8") ?>"
                 required
             >
-        </form>
 
-            <label for="nimi2">
-                Huone Nro
-            </label>
-         </form>
-            <input
-                type="number"
-                id="nimi2"
-                name="nimi2"
-                required
-            >
-           </form> 
             <label for="paivamaara">
                 Päivämäärä
-                
             </label>
-
             <input
                 type="date"
                 id="paivamaara"
                 name="paivamaara"
-                
-                
+                value="<?= htmlspecialchars($paivamaara, ENT_QUOTES, "UTF-8") ?>"
                 required
             >
-            
 
-   
-            <form method="post" action="huoneet.php">
- 
-            <button type="submit">
-                Varaa
-            </button>
-            </form>
-    
-</form>
+            <label for="alkamisaika">Alkamisaika</label>
+            <input
+                type="time"
+                id="alkamisaika"
+                name="alkamisaika"
+                value="<?= htmlspecialchars($alkamisaika, ENT_QUOTES, "UTF-8") ?>"
+                required
+            >
 
+            <label for="loppumisaika">Päättymisaika</label>
+            <input
+                type="time"
+                id="loppumisaika"
+                name="loppumisaika"
+                value="<?= htmlspecialchars($loppumisaika, ENT_QUOTES, "UTF-8") ?>"
+                required
+            >
 
-        
- 
-<form method="post" action="trel.php">
-            <button type="submit">
-                Takaisin
-            </button>
- </form>
- <p></P>
- <a href="poista_huone.php">Poista varaus</a>
+            <button type="submit">Varaa</button>
+        </form>
+        <p><a href="admin.php">Takaisin hallintaan</a></p>
     </div>
 
     
@@ -355,7 +324,7 @@ a:active {
  
         <h2>Tallennetut huonevaraukset</h2>
  
-        <?php if (count($tuotteet) === 0): ?>
+        <?php if (count($varaukset) === 0): ?>
  
             <p class="ei-tuotteita">
                 ei huonevarauksia tallennettu
@@ -367,44 +336,36 @@ a:active {
  
                 <thead>
                     <tr>
-                        <th>Nimi</th>
-                        <th>Maa</th>
-                        <th>Huone Nro</th>
-                        
+                        <th>Luokka/huone</th>
+                        <th>Aihe</th>
                         <th>Päivämäärä</th>
-                        
+                        <th>Aika</th>
                     </tr>
                 </thead>
  
                 <tbody>
  
-                <?php foreach ($tuotteet as $tuote): ?>
+                <?php foreach ($varaukset as $varaus): ?>
  
                     <tr>
                         
  
                         <td>
-                            <?= htmlspecialchars($tuote["nimi"]) ?>
+                            <?= htmlspecialchars($varaus["Luokka"], ENT_QUOTES, "UTF-8") ?>
                         </td>
  
                         <td>
-                            <?= htmlspecialchars($tuote["maa"]) ?>
+                            <?= htmlspecialchars($varaus["Aihe"], ENT_QUOTES, "UTF-8") ?>
                         </td>
 
                         <td>
-                            <?= htmlspecialchars($tuote["nimi2"]) ?>
+                            <?= htmlspecialchars($varaus["Paivamaara"], ENT_QUOTES, "UTF-8") ?>
                         </td>
                         
                         <td>
-                            <?= 
-                                $tuote["paivamaara"],
-                                
-                                
-                                " "
-
-                        
-
-                             ?> 
+                            <?= htmlspecialchars(substr($varaus["Alkamisaika"], 0, 5), ENT_QUOTES, "UTF-8") ?>
+                            -
+                            <?= htmlspecialchars(substr($varaus["Loppumisaika"], 0, 5), ENT_QUOTES, "UTF-8") ?>
                         </td>
 
                         
