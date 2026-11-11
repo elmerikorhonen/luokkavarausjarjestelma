@@ -1,124 +1,9 @@
-
 <?php
- 
-$apiOsoite = $apiOsoite = "http://localhost:8080/trel.php";
-$viesti = "";
- 
- 
-// Kun lomake lähetetään
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
- 
-    $nimi = trim($_POST["nimi"] ?? "");
-    $maa = $_POST["maa"] ?? "";
-    $nimi2 = $_POST["nimi2"] ?? "";
-    $paivamaara = trim($_POST["paivamaara"] ?? "");
- 
-    if ($nimi === "" || $maa === "" || $nimi2 === "" || $paivamaara === "") {
- 
-        $viesti = "Täytä tapahtuman tiedot";
- 
-    } else {
- 
-        // Aloitetaan cURL-pyyntö
-        $curl = curl_init();
- 
-        // Asetetaan API:n osoite
-        curl_setopt(
-            $curl,
-            CURLOPT_URL,
-            $apiOsoite
-        );
- 
-        // Pyyntö on POST-pyyntö
-        curl_setopt(
-            $curl,
-            CURLOPT_POST,
-            true
-        );
- 
-        // Lähetettävät tiedot
-        curl_setopt(
-            $curl,
-            CURLOPT_POSTFIELDS,
-            [
-                "nimi" => $nimi,
-                "maa" => $maa,
-                "nimi2" => $nimi2,
-                "paivamaara" => $paivamaara
-
-            ]
-        );
- 
-        // API:n vastaus tallennetaan muuttujaan
-        curl_setopt(
-            $curl,
-            CURLOPT_RETURNTRANSFER,
-            true
-        );
- 
-        // Suoritetaan pyyntö
-        $vastaus = curl_exec($curl);
- 
-        // Tarkistetaan, tapahtuiko cURL-virhe
-        if ($vastaus === false) {
- 
-            $viesti = "cURL-virhe: " . curl_error($curl);
- 
-        } else {
- 
-            $vastausTaulukkona = json_decode(
-                $vastaus,
-                true
-            );
- 
-            $viesti = $vastausTaulukkona["viesti"]
-                ?? "API ei palauttanut viestiä.";
-        }
- 
-        // Suljetaan cURL-yhteys
-        curl_close($curl);
-    }
+session_start();
+if (!isset($_SESSION["kayttaja_id"])) {
+    header("Location: kirjautuminen.php");
+    exit;
 }
- 
- 
-// Haetaan kaikki tuotteet API:sta
-$curl = curl_init();
- 
-curl_setopt(
-    $curl,
-    CURLOPT_URL,
-    $apiOsoite
-);
- 
-curl_setopt(
-    $curl,
-    CURLOPT_RETURNTRANSFER,
-    true
-);
- 
-$vastaus = curl_exec($curl);
- 
-if ($vastaus === false) {
- 
-    $tuotteet = [];
-    $hakuvirhe = curl_error($curl);
- 
-} else {
- 
-    $tuotteet = json_decode(
-        $vastaus,
-        true
-    );
- 
-    $hakuvirhe = "";
- 
-    if (!is_array($tuotteet)) {
-        $tuotteet = [];
-    }
-}
- 
-curl_close($curl);
- 
 ?>
 <!DOCTYPE html>
 <html lang="fi">
@@ -232,16 +117,18 @@ tr:hover {background-color: #D6EEEE;}
 
 <header>
   <h1>Admin</h1>
-  
+  <p>Kirjautuneena: <?= htmlspecialchars($_SESSION["kayttajan_nimi"] ?? "", ENT_QUOTES, "UTF-8") ?>
+    <a href="uloskirjautuminen.php">Kirjaudu ulos</a>
+  </p>
 </header>
 
 
 
 <div class="sidenav">
-  <a href="Huoneet.php">Huoneet</a>
-  <a href="Varaukset.php">Varaukset</a>
+  <a href="huoneet.php">Huoneet</a>
+  <a href="varaukset.php">Varaukset</a>
   <a href="kayttajat.php">Käyttäjät</a>
-  <a href="Raportit.php">Raportit</a>
+  <a href="raportit.php">Raportit</a>
 </div>
 
 <!-- Page content -->

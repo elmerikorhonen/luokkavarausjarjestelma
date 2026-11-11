@@ -328,7 +328,7 @@ a:active {
  </form>
 
 
-        <form method="post" action="trel.php">
+        <form method="post" action="admin.php">
  
             <button type="submit">
                 Takaisin

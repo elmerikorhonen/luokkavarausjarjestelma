@@ -1,123 +1,68 @@
 <?php
- 
-$apiOsoite = "http://localhost/trelo.html";
-$viesti = "";
- 
- 
-// Kun lomake lähetetään
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
- 
-    $nimi = trim($_POST["nimi"] ?? "");
-    $osallistujamaara = $_POST["osallistujamaara"] ?? "";
-    $paikka = $_POST["paikka"] ?? "";
-    $paivamaara = trim($_POST["paivamaara"] ?? "");
- 
-    if ($nimi === "" || $osallistujamaara === "" && "0" || $paikka === "" || $paivamaara === "") {
- 
-        $viesti = "Täytä tapahtuman tiedot";
- 
-    } else {
- 
-        // Aloitetaan cURL-pyyntö
-        $curl = curl_init();
- 
-        // Asetetaan API:n osoite
-        curl_setopt(
-            $curl,
-            CURLOPT_URL,
-            $apiOsoite
-        );
- 
-        // Pyyntö on POST-pyyntö
-        curl_setopt(
-            $curl,
-            CURLOPT_POST,
-            true
-        );
- 
-        // Lähetettävät tiedot
-        curl_setopt(
-            $curl,
-            CURLOPT_POSTFIELDS,
-            [
-                "nimi" => $nimi,
-                "osallistujamaara" => $osallistujamaara,
-                "paikka" => $paikka,
-                "paivamaara" => $paivamaara
+session_start();
 
-            ]
-        );
- 
-        // API:n vastaus tallennetaan muuttujaan
-        curl_setopt(
-            $curl,
-            CURLOPT_RETURNTRANSFER,
-            true
-        );
- 
-        // Suoritetaan pyyntö
-        $vastaus = curl_exec($curl);
- 
-        // Tarkistetaan, tapahtuiko cURL-virhe
-        if ($vastaus === false) {
- 
-            $viesti = "cURL-virhe: " . curl_error($curl);
- 
+if (isset($_SESSION["kayttaja_id"])) {
+    header("Location: admin.php");
+    exit;
+}
+
+$viesti = isset($_GET["ulos"]) ? "Kirjauduit ulos." : "";
+$viestiluokka = "viesti";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $sahkoposti = $_POST["sahkoposti"] ?? "";
+    $salasana = $_POST["salasana"] ?? "";
+
+    if (!is_string($sahkoposti) || !is_string($salasana)) {
+        $viesti = "Anna sähköposti ja salasana.";
+        $viestiluokka = "virhe";
+    } else {
+        $sahkoposti = trim($sahkoposti);
+
+        if ($sahkoposti === "" || $salasana === "" || !filter_var($sahkoposti, FILTER_VALIDATE_EMAIL)) {
+            $viesti = "Sähköposti tai salasana on väärä.";
+            $viestiluokka = "virhe";
         } else {
- 
-            $vastausTaulukkona = json_decode(
-                $vastaus,
-                true
-            );
- 
-            $viesti = $vastausTaulukkona["viesti"]
-                ?? "API ei palauttanut viestiä.";
+            try {
+                require_once __DIR__ . "/back/db.php";
+
+                $kysely = $pdo->prepare(
+                    "SELECT KayttajaID, Etunimi, Sukunimi, Sahkoposti, Salasana_hash, Rooli
+                     FROM Kayttajat
+                     WHERE Sahkoposti = :sahkoposti
+                     LIMIT 1"
+                );
+                $kysely->execute(["sahkoposti" => $sahkoposti]);
+                $kayttaja = $kysely->fetch(PDO::FETCH_ASSOC);
+
+                if (!$kayttaja || !password_verify($salasana, $kayttaja["Salasana_hash"] ?? "")) {
+                    $viesti = "Sähköposti tai salasana on väärä.";
+                    $viestiluokka = "virhe";
+                } else {
+                    $kirjautumisKysely = $pdo->prepare(
+                        "INSERT INTO Kirjautumiset (KayttajaID) VALUES (:kayttaja_id)"
+                    );
+                    $kirjautumisKysely->execute([
+                        "kayttaja_id" => $kayttaja["KayttajaID"],
+                    ]);
+
+                    session_regenerate_id(true);
+                    $_SESSION["kayttaja_id"] = (int) $kayttaja["KayttajaID"];
+                    $_SESSION["kirjautuminen_id"] = (int) $pdo->lastInsertId();
+                    $_SESSION["kayttajan_nimi"] = trim($kayttaja["Etunimi"] . " " . $kayttaja["Sukunimi"]);
+                    $_SESSION["kayttajan_rooli"] = $kayttaja["Rooli"];
+
+                    header("Location: admin.php");
+                    exit;
+                }
+            } catch (PDOException $e) {
+                error_log($e->getMessage());
+                $viesti = "Kirjautuminen ei onnistunut tietokantavirheen vuoksi.";
+                $viestiluokka = "virhe";
+            }
         }
- 
-        // Suljetaan cURL-yhteys
-        curl_close($curl);
     }
 }
- 
- 
-// Haetaan kaikki tuotteet API:sta
-$curl = curl_init();
- 
-curl_setopt(
-    $curl,
-    CURLOPT_URL,
-    $apiOsoite
-);
- 
-curl_setopt(
-    $curl,
-    CURLOPT_RETURNTRANSFER,
-    true
-);
- 
-$vastaus = curl_exec($curl);
- 
-if ($vastaus === false) {
- 
-    $tuotteet = [];
-    $hakuvirhe = curl_error($curl);
- 
-} else {
- 
-    $tuotteet = json_decode(
-        $vastaus,
-        true
-    );
- 
-    $hakuvirhe = "";
- 
-    if (!is_array($tuotteet)) {
-        $tuotteet = [];
-    }
-}
- 
-curl_close($curl);
- 
 ?>
 <!DOCTYPE html>
 <html lang="fi">
@@ -258,17 +203,8 @@ a:active {
  
     <?php if ($viesti !== ""): ?>
  
-        <div class="viesti">
+        <div class="<?= $viestiluokka ?>">
             <?= htmlspecialchars($viesti) ?>
-        </div>
- 
-    <?php endif; ?>
- 
-    <?php if ($hakuvirhe !== ""): ?>
- 
-        <div class="virhe">
-            Tuotteiden hakeminen epäonnistui:
-            <?= htmlspecialchars($hakuvirhe) ?>
         </div>
  
     <?php endif; ?>
@@ -278,40 +214,38 @@ a:active {
         <h2>Kirjaudu sisään
         </h2>
  
-        <form method="post" action="trel.php">
+        <form method="post" action="kirjautuminen.php">
  
-            <label for="nimi">
+            <label for="sahkoposti">
                 Sähköposti
             </label>
  
             <input
-                type="text"
-                id="nimi"
-                name="nimi"
+                type="email"
+                id="sahkoposti"
+                name="sahkoposti"
                 required
             >
 
             
             
-            <label for="osallistujamaara">
+            <label for="salasana">
                 Salasana
             </label>
 
             <input
-                type="text"
-                id="osallistujamaara"
-                name="osallistujamaara"
-                
-                
+                type="password"
+                id="salasana"
+                name="salasana"
                 required
             >
             <p></p>
-            <a href="trello.php">Unohditko salasanan?</a>
+            <a href="salasana.php">Unohditko salasanan?</a>
             
             <p></p>
 
             <p></p>
-            <a href="treelo.php">Rekisteröidy</a>
+            <a href="rekisteroityminen.php">Rekisteröidy</a>
             
             <p></p>
 

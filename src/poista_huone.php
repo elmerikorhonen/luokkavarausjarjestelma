@@ -63,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
  
         // Suljetaan cURL-yhteys
         curl_close($curl); 
-        header ("Location: indexhm.php");
+        header ("Location: huoneet.php");
     }
 }
  
