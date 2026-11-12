@@ -1,10 +1,5 @@
 <?php
- 
-$apiOsoite = "http://localhost/kirjautuminen.php";
 $viesti = "";
- 
- 
-// Kun lomake lähetetään
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
  
     $nimi = trim($_POST["nimi"] ?? "");
@@ -117,7 +112,6 @@ if ($vastaus === false) {
 }
  
 curl_close($curl);
- 
 ?>
 <!DOCTYPE html>
 <html lang="fi">
@@ -311,7 +305,7 @@ a:active {
             <p></p>
 
             <p></p>
-            <a href="uusi_kayttaja.php">Rekisteröidy</a>
+            <a href="rekisteroityminen.php">Rekisteröidy</a>
             
             <p></p>
 
