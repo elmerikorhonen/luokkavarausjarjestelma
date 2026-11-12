@@ -1,6 +1,6 @@
 <?php
  
-$apiOsoite = "http://localhost/trelo.html";
+$apiOsoite = "http://localhost/kirjautuminen.php";
 $viesti = "";
  
  
@@ -253,7 +253,7 @@ curl_close($curl);
         <h2>Rekisteröidy</h2>
         </h2>
  
-        <form method="post" action="trel.php">
+        <form method="post" action="admin.php">
  
             <label for="nimi">
                 Nimi
@@ -317,7 +317,7 @@ curl_close($curl);
         </form>
 
 
-        <form method="post" action="trelo.php">
+        <form method="post" action="kirjautuminen.php">
  
             <button type="submit">
                 Takaisin

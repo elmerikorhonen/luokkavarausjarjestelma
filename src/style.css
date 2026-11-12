@@ -1,0 +1,302 @@
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 40px;
+  background-color: #f4f4f9;
+}
+
+.kalenteri {
+  width: 340px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.otsikko {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.otsikko h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  text-transform: capitalize;
+}
+
+.otsikko button {
+  background: #eee;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.otsikko button:hover {
+  background: #ddd;
+}
+
+.viikonpaivat, .paivat {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  gap: 5px;
+}
+
+.viikonpaivat div {
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: #666;
+  padding-bottom: 8px;
+}
+
+.paivat div {
+  padding: 10px 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.paivat div:not(.tyhja):hover {
+  background-color: #e6f0ff;
+}
+
+.paivat .tanaan {
+  background-color: #0066cc;
+  color: white;
+  font-weight: bold;
+}
+
+.paivat .valittu {
+  outline: 2px solid #0066cc;
+  font-weight: bold;
+}
+
+.paivat .tyhja {
+  cursor: default;
+}
+body {
+            margin: 0;
+            padding: 30px;
+            background-color: #3d69aa;
+            font-family: Arial, sans-serif;
+        }
+ 
+        a:link {
+  color: blue;
+  background-color: transparent;
+  text-decoration: none;
+}
+
+a:visited {
+  color: #87b3d6;
+  background-color: transparent;
+  text-decoration: none;
+}
+
+a:hover {
+  color: blue;
+  background-color: transparent;
+  text-decoration: underline;
+}
+
+a:active {
+  color: #2a455c;
+  background-color: transparent;
+  text-decoration: underline;
+}
+        .sisalto {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+ 
+        h1 {
+            color: #243447;
+        }
+ 
+        .laatikko {
+            margin-bottom: 25px;
+            padding: 25px;
+            background-color: white;
+            border-radius: 8px;
+        }
+ 
+        label {
+            display: block;
+            margin-top: 12px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+ 
+        input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #b8c0cc;
+            border-radius: 4px;
+        }
+ 
+        button {
+            margin-top: 18px;
+            padding: 10px 20px;
+            color: white;
+            background-color: #1769aa;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+ 
+        button:hover {
+            background-color: #12558a;
+        }
+ 
+        .viesti {
+            padding: 12px;
+            margin-bottom: 20px;
+            background-color: #e7f3ff;
+            border-left: 5px solid #87b3d6;
+        }
+ 
+        .virhe {
+            padding: 12px;
+            margin-bottom: 20px;
+            background-color: #ffe7e7;
+            border-left: 5px solid #b00020;
+        }
+ 
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+ 
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #dddddd;
+            text-align: left;
+        }
+ 
+        th {
+            color: white;
+            background-color: #243447;
+        }
+ 
+        tr:hover {
+            background-color: #f5f7fa;
+        }
+ 
+        .ei-tuotteita {
+            color: #5f5e5e;
+        }
+
+
+        a:link {
+  color: green;
+  background-color: transparent;
+  text-decoration: none;
+}
+
+a:visited {
+  color: #87b3d6;
+  background-color: transparent;
+  text-decoration: none;
+}
+
+a:hover {
+  color: blue;
+  background-color: transparent;
+  text-decoration: underline;
+}
+
+a:active {
+  color: #2a455c;
+  background-color: transparent;
+  text-decoration: underline;
+}
+
+
+ul {list-style-type: none;}
+body {font-family: Verdana, sans-serif;}
+
+/* Month header */
+.month {
+  padding: 70px 0px;
+  width: 100%;
+  background: #1769aa;
+  text-align: center;
+}
+
+/* Month list */
+.month ul {
+  margin: 0;
+  padding: 0;
+}
+
+.month ul li {
+  color: white;
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+/* Previous button inside month header */
+.month .prev {
+  float: left;
+  padding-top: 10px;
+}
+
+/* Next button */
+.month .next {
+  float: right;
+  padding-top: 10px;
+}
+
+/* Weekdays (Mon-Sun) */
+.weekdays {
+  margin: 0;
+  padding: 10px 0;
+  background-color:#ddd;
+}
+
+.weekdays li {
+  display: inline-block;
+  width: 13.6%;
+  color: #666;
+  text-align: center;
+}
+
+/* Days (1-31) */
+.days {
+  padding: 10px 0;
+  background: #eee;
+  margin: 0;
+}
+
+.days li {
+  list-style-type: none;
+  display: inline-block;
+  width: 13.6%;
+  text-align: center;
+  margin-bottom: 5px;
+  font-size:12px;
+  color: #777;
+}
+
+/* Highlight the "current" day */
+.days li .active {
+  padding: 5px;
+  background: #1c77b4;
+  color: white !important
+}
+
+#p-id {
+    visibility: hidden;
+}
+
+#input-id{
+    margin-left: 150px;
+}

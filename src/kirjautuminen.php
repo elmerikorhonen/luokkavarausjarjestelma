@@ -1,6 +1,6 @@
 <?php
  
-$apiOsoite = "http://localhost/trelo.html";
+$apiOsoite = "http://localhost/kirjautuminen.php";
 $viesti = "";
  
  
@@ -135,7 +135,7 @@ curl_close($curl);
         body {
             margin: 0;
             padding: 30px;
-            background-color: #f2f4f7;
+            background-color: #5d7fb3;
             font-family: Arial, sans-serif;
         }
  
@@ -278,7 +278,7 @@ a:active {
         <h2>Kirjaudu sisään
         </h2>
  
-        <form method="post" action="trel.php">
+        <form method="post" action="admin.php">
  
             <label for="nimi">
                 Sähköposti
@@ -298,7 +298,7 @@ a:active {
             </label>
 
             <input
-                type="text"
+                type="password"
                 id="osallistujamaara"
                 name="osallistujamaara"
                 
@@ -306,12 +306,12 @@ a:active {
                 required
             >
             <p></p>
-            <a href="trello.php">Unohditko salasanan?</a>
+            <a href="salasana.php">Unohditko salasanan?</a>
             
             <p></p>
 
             <p></p>
-            <a href="treelo.php">Rekisteröidy</a>
+            <a href="uusi_kayttaja.php">Rekisteröidy</a>
             
             <p></p>
 

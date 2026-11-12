@@ -1,7 +1,7 @@
 
 <?php
  
-$apiOsoite = "http://localhost/trelo.html";
+$apiOsoite = "http://localhost/admin.php";
 $viesti = "";
  
  
@@ -279,7 +279,7 @@ a:active {
         <h2>Vaihda salasana</h2>
         </h2>
  
-        <form method="post" action="trel.php">
+        <form method="post" action="admin.php">
  
             <label for="nimi">
                 Uusi salasana
@@ -319,7 +319,7 @@ a:active {
  </form>
 
 
-        <form method="post" action="trelo.php">
+        <form method="post" action="kirjautuminen.php">
  
             <button type="submit">
                 Takaisin

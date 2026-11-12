@@ -1,6 +1,6 @@
-v<?php
+<?php
  
-$apiOsoite = "http://localhost/trel.php";
+$apiOsoite = "http://localhost/admin.php";
 $viesti = "";
  
  
@@ -8,13 +8,12 @@ $viesti = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
  
     $nimi = trim($_POST["nimi"] ?? "");
-    $osallistujamaara = $_POST["osallistujamaara"] ?? "";
-    $paikka = $_POST["paikka"] ?? "";
-    $paivamaara = trim($_POST["paivamaara"] ?? "");
+    $maa = $_POST["maa"] ?? "";
+    
  
-    if ($nimi === "" || $osallistujamaara === "" && "0" || $paikka === "" || $paivamaara === "") {
+    if ($nimi === "" || $maa === "") {
  
-        $viesti = "Täytä tapahtuman tiedot";
+        $viesti = "Täytä tiedot";
  
     } else {
  
@@ -41,9 +40,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             CURLOPT_POSTFIELDS,
             [
                 "nimi" => $nimi,
-                "osallistujamaara" => $osallistujamaara,
-                "paikka" => $paikka,
-                "paivamaara" => $paivamaara
+                "maa" => $maa
+                
 
             ]
         );
@@ -135,7 +133,7 @@ curl_close($curl);
         body {
             margin: 0;
             padding: 30px;
-            background-color: #f2f4f7;
+            background-color: #3867ac;
             font-family: Arial, sans-serif;
         }
  
@@ -289,31 +287,109 @@ a:active {
     <th>Käyttäjät</th>
     
 </table>
-<table style="width:50%;">
-    
-  <tr>
-     
-    
-    <th>Nimi</th>
-    <th>Maa</th>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    </tr>
-</table>
+<label for="nimi">
+                Nimi
+            </label>
+ 
+            <input
+                type="text"
+                id="nimi"
+                name="nimi"
+                required
+            >
 
+            <label for="maa">
+                Maa
+            </label>
+ 
+            <input
+                type="text"
+                id="maa"
+                name="maa"
+                required
+            >
+        </form>
+
+            
+            
+
+   
+            <form method="post" action="kayttajat.php">
+ 
+            <button type="submit">
+                Tallenna tiedot
+            </button>
+            </form>
+    
+</form>
+
+
+        
+ 
+<form method="post" action="admin.php">
+            <button type="submit">
+                Takaisin
+            </button>
+ </form>
+ <p></P>
+ 
+    </div>
+
+    
+ <div class="laatikko">
+ 
+        <h2>Tallennetut tiedot  </h2>
+ 
+        <?php if (count($tuotteet) === 0): ?>
+ 
+            <p class="ei-tuotteita">
+                ei tietoja tallennettu
+            </p>
+ 
+        <?php else: ?>
+ 
+            <table>
+ 
+                <thead>
+                    <tr>
+                        <th>Nimi</th>
+                        <th>Maa</th>
+                        
+                        
+                    </tr>
+                </thead>
+ 
+                <tbody>
+ 
+                <?php foreach ($tuotteet as $tuote): ?>
+ 
+                    <tr>
+                        
+ 
+                        <td>
+                            <?= htmlspecialchars($tuote["nimi"]) ?>
+                        </td>
+ 
+                        <td>
+                            <?= htmlspecialchars($tuote["maa"]) ?>
+                        </td>
+
+                        
+
+                        
+
+                    </tr>
+                   
+                <?php endforeach; ?>
+ 
+                </tbody>
+ 
+            </table>
+ 
+        <?php endif; ?>
+ 
+    </div>
+<a href="poista_varaus.php">Poista käyttäjä</a>
     </body>
 </html>
             
@@ -327,12 +403,7 @@ a:active {
  </form>
 
 
-        <form method="post" action="trel.php">
- 
-            <button type="submit">
-                Takaisin
-            </button>
- </form>
+        
     </div>
  
     

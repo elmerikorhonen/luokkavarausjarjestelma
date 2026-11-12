@@ -1,6 +1,6 @@
-v<?php
+<?php
  
-$apiOsoite = $apiOsoite = "http://localhost/trel.php";
+$apiOsoite = $apiOsoite = "http://localhost/admin.php";
 $viesti = "";
  
  
@@ -8,13 +8,14 @@ $viesti = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
  
     $nimi = trim($_POST["nimi"] ?? "");
-    $osallistujamaara = $_POST["osallistujamaara"] ?? "";
-    $paikka = $_POST["paikka"] ?? "";
-    $paivamaara = trim($_POST["paivamaara"] ?? "");
+    $maa = $_POST["maa"] ?? "";
+    $nimi2 = $_POST["nimi2"] ?? "";
+    
+    $kalenteri = $_POST["kalenteri"] ?? "";
  
-    if ($nimi === "" || $osallistujamaara === "" && "0" || $paikka === "" || $paivamaara === "") {
+    if ($nimi === "" || $maa === "" && "0" || $nimi2 === "" || $kalenteri === "") {
  
-        $viesti = "Täytä tapahtuman tiedot";
+        $viesti = "Täytä tiedot";
  
     } else {
  
@@ -41,9 +42,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             CURLOPT_POSTFIELDS,
             [
                 "nimi" => $nimi,
-                "osallistujamaara" => $osallistujamaara,
-                "paikka" => $paikka,
-                "paivamaara" => $paivamaara
+                "maa" => $maa,
+                "nimi2" => $nimi2,
+                "kalenteri" => $kalenteri
 
             ]
         );
@@ -116,12 +117,17 @@ if ($vastaus === false) {
     }
 }
  
+ 
+
+
 curl_close($curl);
  
 ?>
 <!DOCTYPE html>
 <html lang="fi">
 <head>
+     <link rel="stylesheet" href="style.css">
+
     <meta charset="UTF-8">
  
     <meta
@@ -132,121 +138,8 @@ curl_close($curl);
     <title>Huoneiden varaus</title>
  
     <style>
-        body {
-            margin: 0;
-            padding: 30px;
-            background-color: #f2f4f7;
-            font-family: Arial, sans-serif;
-        }
- 
-        .sisalto {
-            max-width: 800px;
-            margin: 0 auto;
-        }
- 
-        h1 {
-            color: #243447;
-        }
- 
-        .laatikko {
-            margin-bottom: 25px;
-            padding: 25px;
-            background-color: white;
-            border-radius: 8px;
-        }
- 
-        label {
-            display: block;
-            margin-top: 12px;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
- 
-        input {
-            width: 100%;
-            padding: 10px;
-            box-sizing: border-box;
-            border: 1px solid #b8c0cc;
-            border-radius: 4px;
-        }
- 
-        button {
-            margin-top: 18px;
-            padding: 10px 20px;
-            color: white;
-            background-color: #1769aa;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
- 
-        button:hover {
-            background-color: #12558a;
-        }
- 
-        .viesti {
-            padding: 12px;
-            margin-bottom: 20px;
-            background-color: #e7f3ff;
-            border-left: 5px solid #87b3d6;
-        }
- 
-        .virhe {
-            padding: 12px;
-            margin-bottom: 20px;
-            background-color: #ffe7e7;
-            border-left: 5px solid #b00020;
-        }
- 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
- 
-        th,
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #dddddd;
-            text-align: left;
-        }
- 
-        th {
-            color: white;
-            background-color: #243447;
-        }
- 
-        tr:hover {
-            background-color: #f5f7fa;
-        }
- 
-        .ei-tuotteita {
-            color: #5f5e5e;
-        }
+        
 
-
-        a:link {
-  color: green;
-  background-color: transparent;
-  text-decoration: none;
-}
-
-a:visited {
-  color: #87b3d6;
-  background-color: transparent;
-  text-decoration: none;
-}
-
-a:hover {
-  color: blue;
-  background-color: transparent;
-  text-decoration: underline;
-}
-
-a:active {
-  color: #2a455c;
-  background-color: transparent;
-  text-decoration: underline;
-}
     </style>
 </head>
  
@@ -284,36 +177,135 @@ a:active {
   </table>
 <table style="width:50%;">
     
+
+<label for="nimi">
+                Nimi
+            </label>
+ 
+            <input
+                type="text"
+                id="nimi"
+                name="nimi"
+                required
+            >
+
+            <label for="maa">
+                Maa
+            </label>
+ 
+            <input
+                type="text"
+                id="maa"
+                name="maa"
+                required
+            >
+        </form>
+
+            <label for="nimi2">
+                Huone Nro
+            </label>
+         </form>
+            <input
+                type="number"
+                id="nimi2"
+                name="nimi2"
+                required
+            >
+           </form> 
+            
+            
+
+   
+            <form method="post" action="varaukset.php">
+ 
+            <button type="submit">
+                Tallenna tiedot
+            </button>
+            </form>
+    
+</form>
+
+<p></P>
+         
+ 
+
+ </form>
+ <p></P>
+ 
+    </div>
+
+    
+ <div class="laatikko">
+ 
+        <h2>Tallennetut tiedot  </h2>
+ 
+        <?php if (count($tuotteet) === 0): ?>
+ 
+            <p class="ei-tuotteita">
+                ei tietoja tallennettu
+            </p>
+ 
+        <?php else: ?>
+ 
+            <table>
+ 
+                <thead>
+                    <tr>
+                        <th>Nimi</th>
+                        <th>Maa</th>
+                        <th>Huone Nro</th>
+                        <th>Päivämäärä</th>
+                        
+                        
+                        
+                    </tr>
+                </thead>
+ 
+                <tbody>
+ 
+                <?php foreach ($tuotteet as $tuote): ?>
+ 
+                    <tr>
+                        
+ 
+                        <td>
+                            <?= htmlspecialchars($tuote["nimi"]) ?>
+                        </td>
+ 
+                        <td>
+                            <?= htmlspecialchars($tuote["maa"]) ?>
+                        </td>
+
+                        <td>
+                            <?= htmlspecialchars($tuote["nimi2"]) ?>
+                        </td>
+                        
+
+                        <td>
+                            <?= htmlspecialchars($tuote["kalenteri"]) ?>
+                        </td>
+
+                    </tr>
+                   
+                <?php endforeach; ?>
+ 
+                </tbody>
+ 
+            </table>
+ 
+        <?php endif; ?>
+ 
+    </div>
+
+
   <tr>
      
-    <th>Varaukset</th>
+    
     
 </table>
 <table style="width:50%;">
     
-  <tr>
-     
-    
-    <th>Nimi</th>
-    <th>Maa</th>
-    <th>Huoneet</th>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-    <td></td>
-    </tr>
-</table>
+  
 
     </body>
 </html>
@@ -328,11 +320,7 @@ a:active {
  </form>
 
 
-        <form method="post" action="trel.php">
- 
-            <button type="submit">
-                Takaisin
-            </button>
+        
  </form>
     </div>
  
@@ -342,5 +330,37 @@ a:active {
  
 </div>
  
+<p></p>
+
+
+
+         
+
+<div class="kalenteri" id="kalenteri">
+    <div class="otsikko">
+      <button id="edellinen">&lt;</button>
+      <h2 id="kuukausiVuosi"></h2>
+      <button id="seuraava">&gt;</button>
+    </div>
+    <div class="viikonpaivat">
+      <div>Ma</div>
+      <div>Ti</div>
+      <div>Ke</div>
+      <div>To</div>
+      <div>Pe</div>
+      <div>La</div>
+      <div>Su</div>
+    </div>
+    <div class="paivat" id="paivatRuudukko"></div>
+  </div>
+   <p id="valittuInfo">Valitse päivä kalenterista.</p>
+   
+   
+ <script src="script.js"></script>
+  <form method="post" action="admin.php">
+ 
+            <button type="submit">
+                Takaisin
+            </button>
 </body>
 </html>
