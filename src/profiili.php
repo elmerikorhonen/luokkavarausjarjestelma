@@ -3,7 +3,7 @@
 $apiOsoite = "http://localhost/yleis.php";
 $viesti = "";
  
- 
+ session_start();
 // Kun lomake lähetetään
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
  
