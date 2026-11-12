@@ -21,7 +21,7 @@ if (!isset($_SESSION["kayttaja_id"])) {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #F4F4F4
+            background-color: #f4f4f4
         }
  
         header {
@@ -56,7 +56,7 @@ if (!isset($_SESSION["kayttaja_id"])) {
   padding: 6px 8px 6px 8px;
   text-decoration: none;
   font-size: 25px;
-  color: #818181;
+  color: #ccc7c7;
   display: block;
 }
 
@@ -101,6 +101,12 @@ table {
 
 
 tr:hover {background-color: #D6EEEE;}
+
+
+
+
+
+
 </style>
 </head>
 <body>
@@ -174,6 +180,15 @@ tr:hover {background-color: #D6EEEE;}
     <td></td>
     </tr>
 </table>
+
+
+
+
+
+
+
+
+
 
     </body>
 </html>

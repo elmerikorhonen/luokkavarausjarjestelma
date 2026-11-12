@@ -123,7 +123,7 @@ curl_close($curl);
         body {
             margin: 0;
             padding: 30px;
-            background-color: #f2f4f7;
+            background-color: #5485ce;
             font-family: Arial, sans-serif;
         }
  

@@ -123,6 +123,8 @@ curl_close($curl);
 <!DOCTYPE html>
 <html lang="fi">
 <head>
+    
+    <link rel="stylesheet" href="style.css">
     <meta charset="UTF-8">
  
     <meta
@@ -136,7 +138,7 @@ curl_close($curl);
         body {
             margin: 0;
             padding: 30px;
-            background-color: #f2f4f7;
+            background-color: #4b77b9;
             font-family: Arial, sans-serif;
         }
  
@@ -167,7 +169,7 @@ curl_close($curl);
             width: 100%;
             padding: 10px;
             box-sizing: border-box;
-            border: 1px solid #b8c0cc;
+            border: 1px solid #b8bfcc;
             border-radius: 4px;
         }
  
@@ -224,7 +226,10 @@ curl_close($curl);
             color: #5f5e5e;
         }
 
-
+ 
+        title {
+            color: #243447;
+        }
         a:link {
   color: blue;
   background-color: transparent;
@@ -405,6 +410,6 @@ a:active {
     
  
 </div>
- 
+  <a href="poista_huone.php">Poista varaus</a>
 </body>
 </html>

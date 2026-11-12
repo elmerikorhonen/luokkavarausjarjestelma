@@ -1,7 +1,7 @@
 
 <?php
  
-$apiOsoite = "http://localhost/trelo.html";
+$apiOsoite = "http://localhost/admin.php";
 $viesti = "";
  
  
