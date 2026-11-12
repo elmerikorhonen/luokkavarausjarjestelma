@@ -279,7 +279,7 @@ a:active {
         <h2>Vaihda salasana</h2>
         </h2>
  
-        <form method="post" action="admin.php">
+        <form method="post" action="salasana.php">
  
             <label for="nimi">
                 Uusi salasana
