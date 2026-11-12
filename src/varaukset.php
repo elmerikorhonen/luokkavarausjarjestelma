@@ -320,7 +320,11 @@ curl_close($curl);
  </form>
 
 
-        
+        <form method="post" action="admin.php">
+ 
+            <button type="submit">
+                Takaisin
+            </button>
  </form>
     </div>
  

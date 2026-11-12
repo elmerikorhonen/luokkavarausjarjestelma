@@ -1,124 +1,124 @@
 <?php
- 
-$apiOsoite = "http://localhost/admin.php";
+session_start();
+
+if (!isset($_SESSION["kayttaja_id"])) {
+    header("Location: kirjautuminen.php");
+    exit;
+}
+$kayttaja_id = $_SESSION["kayttaja_id"];
+$apiOsoitevaraukset = "http://localhost/api.php?taulu=varaukset";
+$apiOsoiteluokat= "http://localhost/api.php?taulu=luokat";
+
 $viesti = "";
- 
- 
-// Kun lomake lähetetään
+$viestiluokka = "viesti";
+$hakuvirhe = "";
+$luokka = "";
+$paivamaara = "";
+$alkamisaika = "";
+$loppumisaika = "";
+$aihe = "";
+$varaukset = [];
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
- 
-    $nimi = trim($_POST["nimi"] ?? "");
-    $maa = $_POST["maa"] ?? "";
-    $nimi2 = $_POST["nimi2"] ?? "";
-    
-    $kalenteri = $_POST["kalenteri"] ?? "";
- 
-    if ($nimi ===  " " || $maa === " " || $nimi2 === " " || $kalenteri === " ") {
- 
-        $viesti = "Täytä tiedot";
- 
+    $luokka = trim($_POST["luokka"] ?? "");
+    $paivamaara = trim($_POST["paivamaara"] ?? "");
+    $alkamisaika = trim($_POST["alkamisaika"] ?? "");
+    $loppumisaika = trim($_POST["loppumisaika"] ?? "");
+    $aihe = trim($_POST["aihe"] ?? "");
+
+    $paivamaaraTarkistettu = DateTime::createFromFormat("!Y-m-d", $paivamaara);
+    $paivamaaraKelvollinen = $paivamaaraTarkistettu
+        && $paivamaaraTarkistettu->format("Y-m-d") === $paivamaara;
+
+    if ($luokka === "" || $paivamaara === "" || $alkamisaika === "" || $loppumisaika === "" || $aihe === "") {
+        $viesti = "Täytä kaikki varauksen kentät.";
+        $viestiluokka = "virhe";
+    } elseif (mb_strlen($luokka) > 50 || mb_strlen($aihe) > 100) {
+        $viesti = "Luokan nimi tai varauksen aihe on liian pitkä.";
+        $viestiluokka = "virhe";
+    } elseif (!$paivamaaraKelvollinen) {
+        $viesti = "Valitse kelvollinen päivämäärä.";
+        $viestiluokka = "virhe";
+    } elseif (!preg_match('/^\d{2}:\d{2}$/', $alkamisaika) || !preg_match('/^\d{2}:\d{2}$/', $loppumisaika)) {
+        $viesti = "Valitse kelvollinen alkamis- ja päättymisaika.";
+        $viestiluokka = "virhe";
+    } elseif ($alkamisaika >= $loppumisaika) {
+        $viesti = "Päättymisajan pitää olla alkamisajan jälkeen.";
+        $viestiluokka = "virhe";
     } else {
- 
-        // Aloitetaan cURL-pyyntö
         $curl = curl_init();
- 
-        // Asetetaan API:n osoite
-        curl_setopt(
-            $curl,
-            CURLOPT_URL,
-            $apiOsoite
-        );
- 
-        // Pyyntö on POST-pyyntö
-        curl_setopt(
-            $curl,
-            CURLOPT_POST,
-            true
-        );
- 
-        // Lähetettävät tiedot
+        curl_setopt($curl, CURLOPT_URL, $apiOsoitevaraukset);
+        curl_setopt($curl, CURLOPT_POST, true);
         curl_setopt(
             $curl,
             CURLOPT_POSTFIELDS,
-            [
-                "nimi" => $nimi,
-                "maa" => $maa,
-                "nimi2" => $nimi2,
-                "kalenteri" => $kalenteri
+            json_encode([
+                "kayttajaid" => $kayttaja_id,
+                "luokkaid" => $luokka,
+                "paivamaara" => $paivamaara,
+                "alkamisaika" => $alkamisaika,
+                "loppumisaika" => $loppumisaika,
+                "aihe" => $aihe,
+            ], JSON_UNESCAPED_UNICODE)
+        );
+        curl_setopt($curl, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
-            ]
-        );
- 
-        // API:n vastaus tallennetaan muuttujaan
-        curl_setopt(
-            $curl,
-            CURLOPT_RETURNTRANSFER,
-            true
-        );
- 
-        // Suoritetaan pyyntö
         $vastaus = curl_exec($curl);
- 
-        // Tarkistetaan, tapahtuiko cURL-virhe
         if ($vastaus === false) {
- 
             $viesti = "cURL-virhe: " . curl_error($curl);
- 
+            $viestiluokka = "virhe";
         } else {
- 
-            $vastausTaulukkona = json_decode(
-                $vastaus,
-                true
-            );
- 
+            $httpStatus = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+            $vastausTaulukkona = json_decode($vastaus, true);
             $viesti = $vastausTaulukkona["viesti"]
-                ?? "API ei palauttanut viestiä.";
+                ?? "API ei palauttanut kelvollista viestiä (HTTP $httpStatus).";
+            if ($httpStatus >= 400) {
+                $viestiluokka = "virhe";
+            }
         }
- 
-        // Suljetaan cURL-yhteys
+
         curl_close($curl);
     }
 }
- 
- 
-// Haetaan kaikki tuotteet API:sta
+
 $curl = curl_init();
- 
-curl_setopt(
-    $curl,
-    CURLOPT_URL,
-    $apiOsoite
-);
- 
-curl_setopt(
-    $curl,
-    CURLOPT_RETURNTRANSFER,
-    true
-);
- 
+curl_setopt($curl, CURLOPT_URL, $apiOsoitevaraukset);
+curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
 $vastaus = curl_exec($curl);
- 
 if ($vastaus === false) {
- 
-    $tuotteet = [];
     $hakuvirhe = curl_error($curl);
- 
 } else {
- 
-    $tuotteet = json_decode(
-        $vastaus,
-        true
-    );
- 
-    $hakuvirhe = "";
- 
-    if (!is_array($tuotteet)) {
-        $tuotteet = [];
+    $httpStatus = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+    $varaukset = json_decode($vastaus, true);
+
+    if ($httpStatus >= 400 || !is_array($varaukset) || isset($varaukset["onnistui"])) {
+        $hakuvirhe = $varaukset["viesti"] ?? "API palautti virheellisen vastauksen (HTTP $httpStatus).";
+        $varaukset = [];
     }
 }
- 
+
 curl_close($curl);
- 
+$curl = curl_init();
+curl_setopt($curl, CURLOPT_URL, $apiOsoiteluokat);
+curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+$vastaus = curl_exec($curl);
+if ($vastaus === false) {
+    $hakuvirhe = curl_error($curl);
+} else {
+    $httpStatus = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+    $luokat = json_decode($vastaus, true);
+
+    if ($httpStatus >= 400 || !is_array($luokat) || isset($luokat["onnistui"])) {
+        $hakuvirhe = $luokat["viesti"] ?? "API palautti virheellisen vastauksen (HTTP $httpStatus).";
+        $luokat = [];
+    }
+}
+
+curl_close($curl);
+
 ?>
 <!DOCTYPE html>
 <html lang="fi">
@@ -273,7 +273,7 @@ a:active {
     <?php if ($hakuvirhe !== ""): ?>
  
         <div class="virhe">
-            Tuotteiden hakeminen epäonnistui:
+            Varausten hakeminen epäonnistui:
             <?= htmlspecialchars($hakuvirhe) ?>
         </div>
  
@@ -282,86 +282,67 @@ a:active {
     <div class="laatikko">
  
         <h2>Varaa huone</h2>
-             <form action="admin.php" method="get" target="td_blank">
+        <form method="post" action="huoneet.php">
+            <label for="luokka">Luokka tai huone</label>
+            
+                <select
+                id="luokka"
+                name="luokka">
+                <?php foreach($luokat as $luokat2){
+                    echo  '<option ';
+                    if($luokka == $luokat2["Nimi"]){
+                        echo ' selected ';
+                    }
+                    
+                    echo 'value="'. $luokat2["LuokkaID"]. '">'.$luokat2["Nimi"]. '</option>';
+                }
+                ?>
                
-            <label for="nimi">
-                Nimi
-            </label>
- 
-            <input
-                type="text"
-                id="nimi"
-                name="nimi"
-                required
-            >
-
-            <label for="maa">
-                Maa
-            </label>
- 
-            <input
-                type="text"
-                id="maa"
-                name="maa"
-                required
-            >
-        
-
-            <label for="nimi2">
-                Huone Nro
-            </label>
-         
-            <input
-                type="number"
-                id="nimi2"
-                name="nimi2"
-                required
-            >
-           </form> 
-           <P></P>
-            <div class="kalenteri" id="kalenteri">
-    <div class="otsikko">
-      <button id="edellinen">&lt;</button>
-      <h2 id="kuukausiVuosi"></h2>
-      <button id="seuraava">&gt;</button>
-    </div>
-    <div class="viikonpaivat">
-      <div>Ma</div>
-      <div>Ti</div>
-      <div>Ke</div>
-      <div>To</div>
-      <div>Pe</div>
-      <div>La</div>
-      <div>Su</div>
-    </div>
-    <div class="paivat" id="paivatRuudukko"></div>
-  </div>
-   <p id="valittuInfo">Valitse päivä kalenterista.</p>
-   
-   
- <script src="script.js"></script>
+               </select>
             
 
-   
-            <form method="post" action="huoneet.php">
- 
-            <button type="submit">
-                Varaa
-            </button>
-            </form>
-    
-</form>
+            <label for="aihe">Varauksen aihe</label>
+            <input
+                type="text"
+                id="aihe"
+                name="aihe"
+                maxlength="100"
+                value="<?= htmlspecialchars($aihe, ENT_QUOTES, "UTF-8") ?>"
+                required
+            >
 
+            <label for="paivamaara">
+                Päivämäärä
+            </label>
+            <input
+                type="date"
+                id="paivamaara"
+                name="paivamaara"
+                value="<?= htmlspecialchars($paivamaara, ENT_QUOTES, "UTF-8") ?>"
+                required
+            >
 
-        
- 
-<form method="post" action="admin.php">
-            <button type="submit">
-                Takaisin
-            </button>
- </form>
- <p></P>
+            <label for="alkamisaika">Alkamisaika</label>
+            <input
+                type="time"
+                id="alkamisaika"
+                name="alkamisaika"
+                value="<?= htmlspecialchars($alkamisaika, ENT_QUOTES, "UTF-8") ?>"
+                required
+            >
 
+            <label for="loppumisaika">Päättymisaika</label>
+            <input
+                type="time"
+                id="loppumisaika"
+                name="loppumisaika"
+                value="<?= htmlspecialchars($loppumisaika, ENT_QUOTES, "UTF-8") ?>"
+                required
+            >
+
+            <button type="submit">Varaa</button>
+        </form>
+        <p><a href="admin.php">Takaisin hallintaan</a></p>
     </div>
 
     
@@ -369,7 +350,7 @@ a:active {
  
         <h2>Tallennetut huonevaraukset</h2>
  
-        <?php if (count($tuotteet) === 0): ?>
+        <?php if (count($varaukset) === 0): ?>
  
             <p class="ei-tuotteita">
                 ei huonevarauksia tallennettu
@@ -381,44 +362,36 @@ a:active {
  
                 <thead>
                     <tr>
-                        <th>Nimi</th>
-                        <th>Maa</th>
-                        <th>Huone Nro</th>
-                        
+                        <th>Luokka/huone</th>
+                        <th>Aihe</th>
                         <th>Päivämäärä</th>
-                        
+                        <th>Aika</th>
                     </tr>
                 </thead>
  
                 <tbody>
  
-                <?php foreach ($tuotteet as $tuote): ?>
+                <?php foreach ($varaukset as $varaus): ?>
  
                     <tr>
                         
  
                         <td>
-                            <?= htmlspecialchars($tuote["nimi"]) ?>
+                            <?= htmlspecialchars($varaus["LuokkaID"], ENT_QUOTES, "UTF-8") ?>
                         </td>
  
                         <td>
-                            <?= htmlspecialchars($tuote["maa"]) ?>
+                            <?= htmlspecialchars($varaus["Aihe"], ENT_QUOTES, "UTF-8") ?>
                         </td>
 
                         <td>
-                            <?= htmlspecialchars($tuote["nimi2"]) ?>
+                            <?= htmlspecialchars($varaus["Paivamaara"], ENT_QUOTES, "UTF-8") ?>
                         </td>
                         
                         <td>
-                            <?= 
-                                $tuote["kalenteri"] === "1" ? "Varattu" : "Vapaa",
-                                
-                                
-                                " "
-
-                        
-
-                             ?> 
+                            <?= htmlspecialchars(substr($varaus["Alkamisaika"], 0, 5), ENT_QUOTES, "UTF-8") ?>
+                            -
+                            <?= htmlspecialchars(substr($varaus["Loppumisaika"], 0, 5), ENT_QUOTES, "UTF-8") ?>
                         </td>
 
                         

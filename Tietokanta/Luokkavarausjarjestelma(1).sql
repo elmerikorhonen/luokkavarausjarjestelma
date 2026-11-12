@@ -93,6 +93,21 @@ ALTER TABLE `Varaukset`
   ADD KEY `fk_kayttaja` (`KayttajaID`);
 
 --
+-- Kirjautumisten loki
+--
+CREATE TABLE `Kirjautumiset` (
+  `KirjautuminenID` int NOT NULL AUTO_INCREMENT,
+  `KayttajaID` int NOT NULL,
+  `Kirjautumisaika` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Uloskirjautumisaika` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`KirjautuminenID`),
+  KEY `fk_kirjautuminen_kayttaja` (`KayttajaID`),
+  CONSTRAINT `fk_kirjautuminen_kayttaja`
+    FOREIGN KEY (`KayttajaID`) REFERENCES `Kayttajat` (`KayttajaID`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 

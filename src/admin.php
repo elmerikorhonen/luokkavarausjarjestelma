@@ -1,5 +1,11 @@
-
-    <!DOCTYPE html>
+<?php
+session_start();
+if (!isset($_SESSION["kayttaja_id"])) {
+    header("Location: kirjautuminen.php");
+    exit;
+}
+?>
+<!DOCTYPE html>
 <html lang="fi">
 <head>
   
@@ -117,16 +123,18 @@ tr:hover {background-color: #D6EEEE;}
 
 <header>
   <h1>Admin</h1>
-  
+  <p>Kirjautuneena: <?= htmlspecialchars($_SESSION["kayttajan_nimi"] ?? "", ENT_QUOTES, "UTF-8") ?>
+    <a href="uloskirjautuminen.php">Kirjaudu ulos</a>
+  </p>
 </header>
 
 
 
-<div class="sidenav" right: 0>
-  <a href="Huoneet.php">Huoneet</a>
-  <a href="Varaukset.php">Varaukset</a>
+<div class="sidenav">
+  <a href="huoneet.php">Huoneet</a>
+  <a href="varaukset.php">Varaukset</a>
   <a href="kayttajat.php">Käyttäjät</a>
-  <a href="Raportit.php">Raportit</a>
+  <a href="raportit.php">Raportit</a>
 </div>
 
 <!-- Page content -->
