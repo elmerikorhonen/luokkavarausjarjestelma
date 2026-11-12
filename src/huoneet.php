@@ -5,8 +5,9 @@ if (!isset($_SESSION["kayttaja_id"])) {
     header("Location: kirjautuminen.php");
     exit;
 }
-
-require_once __DIR__ . "/back/db.php";
+$kayttaja_id = $_SESSION["kayttaja_id"];
+$apiOsoitevaraukset = "http://localhost/api.php?taulu=varaukset";
+$apiOsoiteluokat= "http://localhost/api.php?taulu=luokat";
 
 $viesti = "";
 $viestiluokka = "viesti";
@@ -16,6 +17,7 @@ $paivamaara = "";
 $alkamisaika = "";
 $loppumisaika = "";
 $aihe = "";
+$varaukset = [];
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $luokka = trim($_POST["luokka"] ?? "");
@@ -44,68 +46,79 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $viesti = "Päättymisajan pitää olla alkamisajan jälkeen.";
         $viestiluokka = "virhe";
     } else {
-        try {
-            $varausTarkistus = $pdo->prepare(
-                "SELECT COUNT(*)
-                 FROM Varaukset
-                 WHERE Luokka = :luokka
-                   AND Paivamaara = :paivamaara
-                   AND Alkamisaika < :loppumisaika
-                   AND Loppumisaika > :alkamisaika"
-            );
-            $varausTarkistus->execute([
-                "luokka" => $luokka,
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $apiOsoitevaraukset);
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt(
+            $curl,
+            CURLOPT_POSTFIELDS,
+            json_encode([
+                "kayttajaid" => $kayttaja_id,
+                "luokkaid" => $luokka,
                 "paivamaara" => $paivamaara,
                 "alkamisaika" => $alkamisaika,
                 "loppumisaika" => $loppumisaika,
-            ]);
+                "aihe" => $aihe,
+            ], JSON_UNESCAPED_UNICODE)
+        );
+        curl_setopt($curl, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
-            if ((int) $varausTarkistus->fetchColumn() > 0) {
-                $viesti = "Luokka on jo varattu valittuna aikana.";
-                $viestiluokka = "virhe";
-            } else {
-                $lisaaVaraus = $pdo->prepare(
-                    "INSERT INTO Varaukset (KayttajaID, Luokka, Paivamaara, Alkamisaika, Loppumisaika, Aihe)
-                     VALUES (:kayttaja_id, :luokka, :paivamaara, :alkamisaika, :loppumisaika, :aihe)"
-                );
-                $lisaaVaraus->execute([
-                    "kayttaja_id" => $_SESSION["kayttaja_id"],
-                    "luokka" => $luokka,
-                    "paivamaara" => $paivamaara,
-                    "alkamisaika" => $alkamisaika,
-                    "loppumisaika" => $loppumisaika,
-                    "aihe" => $aihe,
-                ]);
-
-                $viesti = "Varaus tallennettiin.";
-                $luokka = "";
-                $paivamaara = "";
-                $alkamisaika = "";
-                $loppumisaika = "";
-                $aihe = "";
-            }
-        } catch (PDOException $e) {
-            error_log($e->getMessage());
-            $viesti = "Varausta ei voitu tallentaa tietokantaan.";
+        $vastaus = curl_exec($curl);
+        if ($vastaus === false) {
+            $viesti = "cURL-virhe: " . curl_error($curl);
             $viestiluokka = "virhe";
+        } else {
+            $httpStatus = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+            $vastausTaulukkona = json_decode($vastaus, true);
+            $viesti = $vastausTaulukkona["viesti"]
+                ?? "API ei palauttanut kelvollista viestiä (HTTP $httpStatus).";
+            if ($httpStatus >= 400) {
+                $viestiluokka = "virhe";
+            }
         }
+
+        curl_close($curl);
     }
 }
 
-try {
-    $varausHaku = $pdo->prepare(
-        "SELECT Luokka, Paivamaara, Alkamisaika, Loppumisaika, Aihe
-         FROM Varaukset
-         WHERE KayttajaID = :kayttaja_id
-         ORDER BY Paivamaara DESC, Alkamisaika DESC"
-    );
-    $varausHaku->execute(["kayttaja_id" => $_SESSION["kayttaja_id"]]);
-    $varaukset = $varausHaku->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    error_log($e->getMessage());
-    $varaukset = [];
-    $hakuvirhe = "Varausten hakeminen tietokannasta epäonnistui.";
+$curl = curl_init();
+curl_setopt($curl, CURLOPT_URL, $apiOsoitevaraukset);
+curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+$vastaus = curl_exec($curl);
+if ($vastaus === false) {
+    $hakuvirhe = curl_error($curl);
+} else {
+    $httpStatus = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+    $varaukset = json_decode($vastaus, true);
+
+    if ($httpStatus >= 400 || !is_array($varaukset) || isset($varaukset["onnistui"])) {
+        $hakuvirhe = $varaukset["viesti"] ?? "API palautti virheellisen vastauksen (HTTP $httpStatus).";
+        $varaukset = [];
+    }
 }
+
+curl_close($curl);
+$curl = curl_init();
+curl_setopt($curl, CURLOPT_URL, $apiOsoiteluokat);
+curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+$vastaus = curl_exec($curl);
+if ($vastaus === false) {
+    $hakuvirhe = curl_error($curl);
+} else {
+    $httpStatus = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+    $luokat = json_decode($vastaus, true);
+
+    if ($httpStatus >= 400 || !is_array($luokat) || isset($luokat["onnistui"])) {
+        $hakuvirhe = $luokat["viesti"] ?? "API palautti virheellisen vastauksen (HTTP $httpStatus).";
+        $luokat = [];
+    }
+}
+
+curl_close($curl);
+
 ?>
 <!DOCTYPE html>
 <html lang="fi">
@@ -255,7 +268,7 @@ a:active {
     <?php if ($hakuvirhe !== ""): ?>
  
         <div class="virhe">
-            Tuotteiden hakeminen epäonnistui:
+            Varausten hakeminen epäonnistui:
             <?= htmlspecialchars($hakuvirhe) ?>
         </div>
  
@@ -266,14 +279,22 @@ a:active {
         <h2>Varaa huone</h2>
         <form method="post" action="huoneet.php">
             <label for="luokka">Luokka tai huone</label>
-            <input
-                type="text"
+            
+                <select
                 id="luokka"
-                name="luokka"
-                maxlength="50"
-                value="<?= htmlspecialchars($luokka, ENT_QUOTES, "UTF-8") ?>"
-                required
-            >
+                name="luokka">
+                <?php foreach($luokat as $luokat2){
+                    echo  '<option ';
+                    if($luokka == $luokat2["Nimi"]){
+                        echo ' selected ';
+                    }
+                    
+                    echo 'value="'. $luokat2["LuokkaID"]. '">'.$luokat2["Nimi"]. '</option>';
+                }
+                ?>
+               
+               </select>
+            
 
             <label for="aihe">Varauksen aihe</label>
             <input
@@ -351,7 +372,7 @@ a:active {
                         
  
                         <td>
-                            <?= htmlspecialchars($varaus["Luokka"], ENT_QUOTES, "UTF-8") ?>
+                            <?= htmlspecialchars($varaus["LuokkaID"], ENT_QUOTES, "UTF-8") ?>
                         </td>
  
                         <td>
