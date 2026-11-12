@@ -1,6 +1,6 @@
 <?php
  
-$apiOsoite = "http://localhost/trel.php";
+$apiOsoite = "http://localhost/admin.php";
 $viesti = "";
  
  
@@ -10,9 +10,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $nimi = trim($_POST["nimi"] ?? "");
     $maa = $_POST["maa"] ?? "";
     $nimi2 = $_POST["nimi2"] ?? "";
-    $paivamaara = trim($_POST["paivamaara"] ?? "");
+    
+    $kalenteri = $_POST["kalenteri"] ?? "";
  
-    if ($nimi === "" || $maa === "" || $nimi2 === "" || $paivamaara === "") {
+    if ($nimi ===  " " || $maa === " " || $nimi2 === " " || $kalenteri === " ") {
  
         $viesti = "Täytä tiedot";
  
@@ -43,7 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 "nimi" => $nimi,
                 "maa" => $maa,
                 "nimi2" => $nimi2,
-                "paivamaara" => $paivamaara
+                "kalenteri" => $kalenteri
 
             ]
         );
@@ -122,6 +123,8 @@ curl_close($curl);
 <!DOCTYPE html>
 <html lang="fi">
 <head>
+    
+    <link rel="stylesheet" href="style.css">
     <meta charset="UTF-8">
  
     <meta
@@ -135,7 +138,7 @@ curl_close($curl);
         body {
             margin: 0;
             padding: 30px;
-            background-color: #f2f4f7;
+            background-color: #4b77b9;
             font-family: Arial, sans-serif;
         }
  
@@ -166,7 +169,7 @@ curl_close($curl);
             width: 100%;
             padding: 10px;
             box-sizing: border-box;
-            border: 1px solid #b8c0cc;
+            border: 1px solid #b8bfcc;
             border-radius: 4px;
         }
  
@@ -223,7 +226,10 @@ curl_close($curl);
             color: #5f5e5e;
         }
 
-
+ 
+        title {
+            color: #243447;
+        }
         a:link {
   color: blue;
   background-color: transparent;
@@ -276,9 +282,8 @@ a:active {
     <div class="laatikko">
  
         <h2>Varaa huone</h2>
-             <form action="trel.php" method="get" target="td_blank">
-            <form action="varaukset.php" method="get" target="td_blank">
-        <form action="kayttajat.php" method="get" target="td_blank">   
+             <form action="admin.php" method="get" target="td_blank">
+               
             <label for="nimi">
                 Nimi
             </label>
@@ -300,12 +305,12 @@ a:active {
                 name="maa"
                 required
             >
-        </form>
+        
 
             <label for="nimi2">
                 Huone Nro
             </label>
-         </form>
+         
             <input
                 type="number"
                 id="nimi2"
@@ -313,19 +318,28 @@ a:active {
                 required
             >
            </form> 
-            <label for="paivamaara">
-                Päivämäärä
-                
-            </label>
-
-            <input
-                type="date"
-                id="paivamaara"
-                name="paivamaara"
-                
-                
-                required
-            >
+           <P></P>
+            <div class="kalenteri" id="kalenteri">
+    <div class="otsikko">
+      <button id="edellinen">&lt;</button>
+      <h2 id="kuukausiVuosi"></h2>
+      <button id="seuraava">&gt;</button>
+    </div>
+    <div class="viikonpaivat">
+      <div>Ma</div>
+      <div>Ti</div>
+      <div>Ke</div>
+      <div>To</div>
+      <div>Pe</div>
+      <div>La</div>
+      <div>Su</div>
+    </div>
+    <div class="paivat" id="paivatRuudukko"></div>
+  </div>
+   <p id="valittuInfo">Valitse päivä kalenterista.</p>
+   
+   
+ <script src="script.js"></script>
             
 
    
@@ -341,13 +355,13 @@ a:active {
 
         
  
-<form method="post" action="trel.php">
+<form method="post" action="admin.php">
             <button type="submit">
                 Takaisin
             </button>
  </form>
  <p></P>
- <a href="poista_huone.php">Poista varaus</a>
+
     </div>
 
     
@@ -397,7 +411,7 @@ a:active {
                         
                         <td>
                             <?= 
-                                $tuote["paivamaara"],
+                                $tuote["kalenteri"] === "1" ? "Varattu" : "Vapaa",
                                 
                                 
                                 " "
@@ -423,6 +437,6 @@ a:active {
     
  
 </div>
- 
+  <a href="poista_huone.php">Poista varaus</a>
 </body>
 </html>

@@ -1,126 +1,5 @@
 
-<?php
- 
-$apiOsoite = $apiOsoite = "http://localhost:8080/trel.php";
-$viesti = "";
- 
- 
-// Kun lomake lähetetään
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
- 
-    $nimi = trim($_POST["nimi"] ?? "");
-    $maa = $_POST["maa"] ?? "";
-    $nimi2 = $_POST["nimi2"] ?? "";
-    $paivamaara = trim($_POST["paivamaara"] ?? "");
- 
-    if ($nimi === "" || $maa === "" || $nimi2 === "" || $paivamaara === "") {
- 
-        $viesti = "Täytä tapahtuman tiedot";
- 
-    } else {
- 
-        // Aloitetaan cURL-pyyntö
-        $curl = curl_init();
- 
-        // Asetetaan API:n osoite
-        curl_setopt(
-            $curl,
-            CURLOPT_URL,
-            $apiOsoite
-        );
- 
-        // Pyyntö on POST-pyyntö
-        curl_setopt(
-            $curl,
-            CURLOPT_POST,
-            true
-        );
- 
-        // Lähetettävät tiedot
-        curl_setopt(
-            $curl,
-            CURLOPT_POSTFIELDS,
-            [
-                "nimi" => $nimi,
-                "maa" => $maa,
-                "nimi2" => $nimi2,
-                "paivamaara" => $paivamaara
-
-            ]
-        );
- 
-        // API:n vastaus tallennetaan muuttujaan
-        curl_setopt(
-            $curl,
-            CURLOPT_RETURNTRANSFER,
-            true
-        );
- 
-        // Suoritetaan pyyntö
-        $vastaus = curl_exec($curl);
- 
-        // Tarkistetaan, tapahtuiko cURL-virhe
-        if ($vastaus === false) {
- 
-            $viesti = "cURL-virhe: " . curl_error($curl);
- 
-        } else {
- 
-            $vastausTaulukkona = json_decode(
-                $vastaus,
-                true
-            );
- 
-            $viesti = $vastausTaulukkona["viesti"]
-                ?? "API ei palauttanut viestiä.";
-        }
- 
-        // Suljetaan cURL-yhteys
-        curl_close($curl);
-    }
-}
- 
- 
-// Haetaan kaikki tuotteet API:sta
-$curl = curl_init();
- 
-curl_setopt(
-    $curl,
-    CURLOPT_URL,
-    $apiOsoite
-);
- 
-curl_setopt(
-    $curl,
-    CURLOPT_RETURNTRANSFER,
-    true
-);
- 
-$vastaus = curl_exec($curl);
- 
-if ($vastaus === false) {
- 
-    $tuotteet = [];
-    $hakuvirhe = curl_error($curl);
- 
-} else {
- 
-    $tuotteet = json_decode(
-        $vastaus,
-        true
-    );
- 
-    $hakuvirhe = "";
- 
-    if (!is_array($tuotteet)) {
-        $tuotteet = [];
-    }
-}
- 
-curl_close($curl);
- 
-?>
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="fi">
 <head>
   
@@ -136,7 +15,7 @@ curl_close($curl);
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #F4F4F4
+            background-color: #f4f4f4
         }
  
         header {
@@ -171,7 +50,7 @@ curl_close($curl);
   padding: 6px 8px 6px 8px;
   text-decoration: none;
   font-size: 25px;
-  color: #818181;
+  color: #ccc7c7;
   display: block;
 }
 
@@ -216,6 +95,12 @@ table {
 
 
 tr:hover {background-color: #D6EEEE;}
+
+
+
+
+
+
 </style>
 </head>
 <body>
@@ -237,7 +122,7 @@ tr:hover {background-color: #D6EEEE;}
 
 
 
-<div class="sidenav">
+<div class="sidenav" right: 0>
   <a href="Huoneet.php">Huoneet</a>
   <a href="Varaukset.php">Varaukset</a>
   <a href="kayttajat.php">Käyttäjät</a>
@@ -287,6 +172,15 @@ tr:hover {background-color: #D6EEEE;}
     <td></td>
     </tr>
 </table>
+
+
+
+
+
+
+
+
+
 
     </body>
 </html>

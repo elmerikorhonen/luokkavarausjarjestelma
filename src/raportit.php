@@ -1,6 +1,6 @@
 <?php
  
-$apiOsoite = "http://localhost/trel.php";
+$apiOsoite = "http://localhost/admin.php";
 $viesti = "";
  
  
@@ -8,13 +8,11 @@ $viesti = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
  
     $nimi = trim($_POST["nimi"] ?? "");
-    $osallistujamaara = $_POST["osallistujamaara"] ?? "";
-    $paikka = $_POST["paikka"] ?? "";
-    $paivamaara = trim($_POST["paivamaara"] ?? "");
+    
  
-    if ($nimi === "" || $osallistujamaara === "" && "0" || $paikka === "" || $paivamaara === "") {
+    if ($nimi === "") {
  
-        $viesti = "Täytä tapahtuman tiedot";
+        $viesti = "Täytä raportti";
  
     } else {
  
@@ -40,10 +38,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $curl,
             CURLOPT_POSTFIELDS,
             [
-                "nimi" => $nimi,
-                "osallistujamaara" => $osallistujamaara,
-                "paikka" => $paikka,
-                "paivamaara" => $paivamaara
+                "nimi" => $nimi
+                
 
             ]
         );
@@ -135,7 +131,7 @@ curl_close($curl);
         body {
             margin: 0;
             padding: 30px;
-            background-color: #f2f4f7;
+            background-color: #2f64b3;
             font-family: Arial, sans-serif;
         }
  
@@ -298,7 +294,7 @@ a:active {
  </form>
  
 
-        <form method="post" action="trel.php">
+        <form method="post" action="admin.php">
  
             <button type="submit">
                 Takaisin
