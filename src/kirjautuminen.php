@@ -2,11 +2,29 @@
 session_start();
 
 if (isset($_SESSION["kayttaja_id"])) {
-    header("Location: admin.php");
+    require_once __DIR__ . "/back/db.php";
+    $roolikysely = $pdo->prepare("SELECT Rooli, Aktiivinen FROM Kayttajat WHERE KayttajaID = :id");
+    $roolikysely->execute(["id" => $_SESSION["kayttaja_id"]]);
+    $istunnonKayttaja = $roolikysely->fetch(PDO::FETCH_ASSOC);
+    if (!$istunnonKayttaja || !(int) $istunnonKayttaja["Aktiivinen"]) {
+        session_unset();
+        session_destroy();
+        header("Location: kirjautuminen.php?passiivinen=1");
+        exit;
+    }
+    $_SESSION["kayttajan_rooli"] = $istunnonKayttaja["Rooli"];
+    header("Location: " . (($_SESSION["kayttajan_rooli"] ?? "") === "Opettaja" ? "admin.php" : "yleis.php"));
     exit;
 }
 
-$viesti = isset($_GET["ulos"]) ? "Kirjauduit ulos." : "";
+$viesti = "";
+if (isset($_GET["rekisteroityminen"]) && $_GET["rekisteroityminen"] === "onnistui") {
+    $viesti = "Rekisteröityminen onnistui. Kirjaudu sisään.";
+} elseif (isset($_GET["ulos"])) {
+    $viesti = "Kirjauduit ulos.";
+} elseif (isset($_GET["passiivinen"])) {
+    $viesti = "Käyttäjätili ei ole aktiivinen. Ota yhteyttä ylläpitäjään.";
+}
 $viestiluokka = "viesti";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -27,7 +45,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 require_once __DIR__ . "/back/db.php";
 
                 $kysely = $pdo->prepare(
-                    "SELECT KayttajaID, Etunimi, Sukunimi, Sahkoposti, Salasana_hash, Rooli
+                    "SELECT KayttajaID, Etunimi, Sukunimi, Sahkoposti, Salasana_hash, Rooli, Aktiivinen
                      FROM Kayttajat
                      WHERE Sahkoposti = :sahkoposti
                      LIMIT 1"
@@ -35,7 +53,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $kysely->execute(["sahkoposti" => $sahkoposti]);
                 $kayttaja = $kysely->fetch(PDO::FETCH_ASSOC);
 
-                if (!$kayttaja || !password_verify($salasana, $kayttaja["Salasana_hash"] ?? "")) {
+                if (!$kayttaja || !(int) $kayttaja["Aktiivinen"]
+                    || !password_verify($salasana, $kayttaja["Salasana_hash"] ?? "")) {
                     $viesti = "Sähköposti tai salasana on väärä.";
                     $viestiluokka = "virhe";
                 } else {
@@ -52,7 +71,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $_SESSION["kayttajan_nimi"] = trim($kayttaja["Etunimi"] . " " . $kayttaja["Sukunimi"]);
                     $_SESSION["kayttajan_rooli"] = $kayttaja["Rooli"];
 
-                    header("Location: admin.php");
+                    header("Location: " . ($kayttaja["Rooli"] === "Opettaja" ? "admin.php" : "yleis.php"));
                     exit;
                 }
             } catch (PDOException $e) {

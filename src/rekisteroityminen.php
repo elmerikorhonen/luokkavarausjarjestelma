@@ -3,19 +3,21 @@ $viesti = "";
 $viestiluokka = "viesti";
 $etunimi = "";
 $sukunimi = "";
+$puhelin = "";
 $sahkoposti = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $etunimi = trim($_POST["etunimi"] ?? "");
     $sukunimi = trim($_POST["sukunimi"] ?? "");
+    $puhelin = trim($_POST["puhelin"] ?? "");
     $sahkoposti = trim($_POST["sahkoposti"] ?? "");
     $salasana = $_POST["salasana"] ?? "";
     $salasanaUudelleen = $_POST["salasana_uudelleen"] ?? "";
 
-    if ($etunimi === "" || $sukunimi === "" || $sahkoposti === "" || $salasana === "" || $salasanaUudelleen === "") {
+    if ($etunimi === "" || $sukunimi === "" || $puhelin === "" || $sahkoposti === "" || $salasana === "" || $salasanaUudelleen === "") {
         $viesti = "Täytä kaikki kentät.";
         $viestiluokka = "virhe";
-    } elseif (mb_strlen($etunimi) > 100 || mb_strlen($sukunimi) > 100 || mb_strlen($sahkoposti) > 100) {
+    } elseif (mb_strlen($etunimi) > 100 || mb_strlen($sukunimi) > 100 || mb_strlen($puhelin) > 30 || mb_strlen($sahkoposti) > 100) {
         $viesti = "Nimi tai sähköpostiosoite on liian pitkä.";
         $viestiluokka = "virhe";
     } elseif (!filter_var($sahkoposti, FILTER_VALIDATE_EMAIL)) {
@@ -32,21 +34,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             require_once __DIR__ . "/back/db.php";
 
             $kysely = $pdo->prepare(
-                "INSERT INTO Kayttajat (Etunimi, Sukunimi, Sahkoposti, Salasana_hash, Rooli)
-                 VALUES (:etunimi, :sukunimi, :sahkoposti, :salasana_hash, :rooli)"
+                "INSERT INTO Kayttajat (Etunimi, Sukunimi, Puhelin, Sahkoposti, Salasana_hash, Rooli)
+                 VALUES (:etunimi, :sukunimi, :puhelin, :sahkoposti, :salasana_hash, :rooli)"
             );
             $kysely->execute([
                 "etunimi" => $etunimi,
                 "sukunimi" => $sukunimi,
+                "puhelin" => $puhelin,
                 "sahkoposti" => $sahkoposti,
                 "salasana_hash" => password_hash($salasana, PASSWORD_DEFAULT),
                 "rooli" => "kayttaja",
             ]);
 
-            $viesti = "Rekisteröityminen onnistui. Voit nyt kirjautua sisään.";
-            $etunimi = "";
-            $sukunimi = "";
-            $sahkoposti = "";
+            header("Location: kirjautuminen.php?rekisteroityminen=onnistui");
+            exit;
         } catch (PDOException $e) {
             if ($e->getCode() === "23000") {
                 $viesti = "Tällä sähköpostiosoitteella on jo rekisteröity käyttäjä.";
@@ -208,6 +209,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 name="sukunimi"
                 maxlength="100"
                 value="<?= htmlspecialchars($sukunimi, ENT_QUOTES, "UTF-8") ?>"
+                required
+            >
+
+            <label for="puhelin">
+                Puhelin
+            </label>
+
+            <input
+                type="tel"
+                id="puhelin"
+                name="puhelin"
+                maxlength="30"
+                value="<?= htmlspecialchars($puhelin, ENT_QUOTES, "UTF-8") ?>"
                 required
             >
 

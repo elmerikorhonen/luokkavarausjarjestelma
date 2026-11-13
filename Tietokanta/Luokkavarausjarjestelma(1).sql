@@ -34,7 +34,8 @@ CREATE TABLE `Kayttajat` (
   `Puhelin` varchar(30) DEFAULT NULL,
   `Sahkoposti` varchar(100) DEFAULT NULL,
   `Salasana_hash` varchar(255) DEFAULT NULL,
-  `Rooli` varchar(50) DEFAULT NULL
+  `Rooli` varchar(50) DEFAULT NULL,
+  `Aktiivinen` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------

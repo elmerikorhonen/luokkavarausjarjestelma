@@ -1,170 +1,186 @@
 <?php
 session_start();
 
-if (!isset($_SESSION["yleis_tekstit"]) || !is_array($_SESSION["yleis_tekstit"])) {
-    $_SESSION["yleis_tekstit"] = [];
+if (!isset($_SESSION["kayttaja_id"])) {
+    header("Location: kirjautuminen.php");
+    exit;
 }
 
-$viesti = "";
+require_once __DIR__ . "/back/db.php";
+$kayttajaId = (int) $_SESSION["kayttaja_id"];
+$kayttajaKysely = $pdo->prepare(
+    "SELECT Etunimi, Sukunimi, Rooli, Aktiivinen FROM Kayttajat WHERE KayttajaID = :id"
+);
+$kayttajaKysely->execute(["id" => $kayttajaId]);
+$kayttaja = $kayttajaKysely->fetch(PDO::FETCH_ASSOC);
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $nimi = $_POST["nimi"] ?? "";
-
-    if (!is_string($nimi) || trim($nimi) === "") {
-        $viesti = "Kirjoita teksti ennen lähettämistä.";
-    } else {
-        $_SESSION["yleis_tekstit"][] = trim($nimi);
-        header("Location: yleis.php");
-        exit;
-    }
+if (!$kayttaja || !(int) $kayttaja["Aktiivinen"]) {
+    session_unset();
+    session_destroy();
+    header("Location: kirjautuminen.php");
+    exit;
 }
 
-$tuotteet = $_SESSION["yleis_tekstit"];
+$_SESSION["kayttajan_rooli"] = $kayttaja["Rooli"];
+if ($kayttaja["Rooli"] === "Opettaja") {
+    header("Location: admin.php");
+    exit;
+}
+if ($kayttaja["Rooli"] !== "kayttaja") {
+    http_response_code(403);
+    exit("Sinulla ei ole oikeutta nähdä tätä sivua.");
+}
+
+$varauskysely = $pdo->prepare(
+    "SELECT DISTINCT COALESCE(l.Nimi, CONCAT('Luokka ', v.LuokkaID)) AS LuokanNimi,
+            v.Aihe, v.Paivamaara, v.Alkamisaika, v.Loppumisaika
+     FROM Varaukset v
+     LEFT JOIN Luokat l ON l.LuokkaID = v.LuokkaID
+     WHERE v.KayttajaID = :kayttaja_id
+     ORDER BY v.Paivamaara, v.Alkamisaika"
+);
+$varauskysely->execute(["kayttaja_id" => $kayttajaId]);
+$varaukset = $varauskysely->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="fi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luokkavaraus</title>
+    <title>Omat varaukset | Luokkien varaus</title>
     <style>
+        :root {
+            --blue: #365d81;
+            --blue-dark: #243f59;
+            --blue-soft: #e7eef5;
+            --paper: #ffffff;
+            --ink: #263746;
+            --muted: #627384;
+            --line: #d3dee8;
+        }
+
+        * { box-sizing: border-box; }
+
         body {
+            min-height: 100vh;
             margin: 0;
-            background-color: #f4f4f4;
-            color: #222;
+            background: var(--blue-soft);
+            color: var(--ink);
             font-family: Arial, sans-serif;
         }
 
         header {
-            padding: 10px 20px;
-            background-color: #365d81;
-            color: #fff;
-            text-align: center;
+            background: var(--blue);
+            color: var(--paper);
+            box-shadow: 0 3px 12px rgb(23 45 67 / 18%);
         }
 
-        h1 {
-            margin: 0;
-        }
-
-        .sidenav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1;
-            width: 160px;
-            height: 100%;
-            padding-top: 50px;
-            overflow-x: hidden;
-            background-color: #365d81;
-        }
-
-        .sidenav a {
-            display: block;
-            padding: 6px 8px;
-            color: #ccc7c7;
-            font-size: 20px;
-            text-decoration: none;
-        }
-
-        .sidenav a:hover {
-            color: #fff;
-        }
-
+        .ylapalkin-sisalto,
         main {
-            max-width: 800px;
-            margin: 0 auto 0 160px;
-            padding: 20px;
+            width: min(100% - 48px, 1060px);
+            margin: 0 auto;
         }
 
-        .laatikko {
-            margin-bottom: 20px;
-            padding: 20px;
-            background: #fff;
-            border-radius: 8px;
+        .ylapalkin-sisalto {
+            display: flex;
+            min-height: 76px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
         }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
+        h1 { margin: 0; font-size: 24px; }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
         }
 
-        input {
+        header a { color: var(--paper); }
+        main { padding: 30px 0 40px; }
+
+        .varaukset {
+            padding: 22px;
+            border: 1px solid var(--line);
+            background: var(--paper);
+        }
+
+        h2 { margin: 0 0 18px; font-size: 20px; }
+        .taulukko-kuori { overflow-x: auto; }
+
+        table {
             width: 100%;
-            padding: 10px;
-            box-sizing: border-box;
-            border: 1px solid #b8c0cc;
-            border-radius: 4px;
+            border-collapse: collapse;
+            background: var(--paper);
+            font-size: 14px;
         }
 
-        button {
-            margin-top: 12px;
-            padding: 10px 20px;
-            border: 0;
-            border-radius: 4px;
-            background: #1769aa;
-            color: #fff;
-            cursor: pointer;
+        th,
+        td {
+            padding: 11px 10px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: middle;
         }
 
-        .viesti {
-            margin-bottom: 16px;
-            color: #8b0000;
+        th {
+            background: var(--blue-dark);
+            color: var(--paper);
+            white-space: nowrap;
         }
 
-        .ei-tuotteita {
-            color: #5f5e5e;
-        }
+        .tyhja { color: var(--muted); }
 
-        @media screen and (max-width: 600px) {
-            .sidenav {
-                position: static;
-                width: auto;
-                height: auto;
-                padding: 0;
-            }
-
-            main {
-                margin: 0 auto;
-            }
+        @media (max-width: 620px) {
+            .ylapalkin-sisalto,
+            main { width: min(100% - 32px, 1060px); }
+            .ylapalkin-sisalto { min-height: 0; align-items: flex-start; flex-direction: column; gap: 12px; padding: 16px 0; }
+            nav { gap: 14px; }
+            .varaukset { padding: 18px; }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>Tervetuloa</h1>
+        <div class="ylapalkin-sisalto">
+            <h1>Tervetuloa, <?= htmlspecialchars($kayttaja["Etunimi"], ENT_QUOTES, "UTF-8") ?></h1>
+            <nav aria-label="Päänavigaatio">
+                <a href="varaa.php">Varaa huone</a>
+                <a href="profiili.php">Profiili</a>
+                <a href="uloskirjautuminen.php">Kirjaudu ulos</a>
+            </nav>
+        </div>
     </header>
 
-    <nav class="sidenav" aria-label="Päänavigaatio">
-        <a href="varaa.php">Varaa huone</a>
-        <a href="profiili.php">Profiili</a>
-    </nav>
-
     <main>
-        <section class="laatikko">
-            <h2>Kirjoita teksti</h2>
-
-            <?php if ($viesti !== ""): ?>
-                <p class="viesti"><?= htmlspecialchars($viesti, ENT_QUOTES, "UTF-8") ?></p>
-            <?php endif; ?>
-
-            <form method="post" action="yleis.php">
-                <label for="nimi">Kirjoita lomakkeeseen</label>
-                <input type="text" id="nimi" name="nimi" required>
-                <button type="submit">Lähetä</button>
-            </form>
-        </section>
-
-        <section class="laatikko">
-            <h2>Tallennetut tekstit</h2>
-
-            <?php if ($tuotteet === []): ?>
-                <p class="ei-tuotteita">Ei kirjoitettua tekstiä.</p>
+        <section class="varaukset" aria-labelledby="varaukset-otsikko">
+            <h2 id="varaukset-otsikko">Omat varaukset</h2>
+            <?php if ($varaukset === []): ?>
+                <p class="tyhja">Sinulla ei ole vielä varauksia.</p>
             <?php else: ?>
-                <ul>
-                    <?php foreach ($tuotteet as $tuote): ?>
-                        <li><?= htmlspecialchars($tuote, ENT_QUOTES, "UTF-8") ?></li>
-                    <?php endforeach; ?>
-                </ul> 
+                <div class="taulukko-kuori">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Luokka/huone</th>
+                                <th>Aihe</th>
+                                <th>Päivämäärä</th>
+                                <th>Aika</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($varaukset as $varaus): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($varaus["LuokanNimi"], ENT_QUOTES, "UTF-8") ?></td>
+                                    <td><?= htmlspecialchars($varaus["Aihe"], ENT_QUOTES, "UTF-8") ?></td>
+                                    <td><?= htmlspecialchars($varaus["Paivamaara"], ENT_QUOTES, "UTF-8") ?></td>
+                                    <td><?= htmlspecialchars(substr($varaus["Alkamisaika"], 0, 5) . " - " . substr($varaus["Loppumisaika"], 0, 5), ENT_QUOTES, "UTF-8") ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             <?php endif; ?>
         </section>
     </main>

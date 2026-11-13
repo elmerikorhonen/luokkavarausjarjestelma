@@ -1,5 +1,24 @@
 <?php
- 
+session_start();
+if (!isset($_SESSION["kayttaja_id"])) {
+    header("Location: kirjautuminen.php");
+    exit;
+}
+require_once __DIR__ . "/back/db.php";
+$roolikysely = $pdo->prepare("SELECT Rooli, Aktiivinen FROM Kayttajat WHERE KayttajaID = :id");
+$roolikysely->execute(["id" => $_SESSION["kayttaja_id"]]);
+$istunnonKayttaja = $roolikysely->fetch(PDO::FETCH_ASSOC);
+if (!$istunnonKayttaja || !(int) $istunnonKayttaja["Aktiivinen"]) {
+    session_unset();
+    session_destroy();
+    header("Location: kirjautuminen.php?passiivinen=1");
+    exit;
+}
+if ($istunnonKayttaja["Rooli"] !== "Opettaja") {
+    header("Location: huoneet.php");
+    exit;
+}
+
 $apiOsoite = "http://localhost/huoneet.php";
 $viesti = "";
 $id = $_GET["id"] ?? "";
