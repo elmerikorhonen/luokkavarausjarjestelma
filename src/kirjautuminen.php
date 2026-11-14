@@ -259,8 +259,6 @@ a:active {
                 required
             >
             <p></p>
-            <a href="salasana.php">Unohditko salasanan?</a>
-            
             <p></p>
 
             <p></p>

@@ -45,5 +45,3 @@ services:
 
 volumes:
   dbdata:
-    external: true
-    name: e8b0633292b85f77cbdb829da4e604bb9f90a4a4b45f66ee9a1a06905d71b32a

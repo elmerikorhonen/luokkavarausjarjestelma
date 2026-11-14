@@ -590,7 +590,7 @@ a:active {
                 maxlength="5"
                 placeholder="14.00"
                 pattern="(?:[01][0-9]|2[0-3])[.:][0-5][0-9]"
-                title="Esimerkiksi 14.00 tai 14:00"
+                title="Esimerkiksi 09.00 tai 14:00"
                 value="<?= htmlspecialchars(str_replace(":", ".", $alkamisaika), ENT_QUOTES, "UTF-8") ?>"
                 required
             >
